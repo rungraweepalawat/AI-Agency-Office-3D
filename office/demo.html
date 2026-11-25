@@ -63,11 +63,20 @@ body{margin:0;background:#080d1b;color:#edf3ff}
 #agency-sim .card-activity::before{content:"";display:inline-block;width:6px;height:6px;margin-right:6px;border-radius:50%;background:#81bfff;animation:office-indicator 2s ease-in-out infinite}
 @keyframes office-indicator{50%{opacity:.45}}
 @media(prefers-reduced-motion:reduce){#agency-sim .card-activity::before{animation:none}}
+
+.office-skyline{position:relative;height:64px;overflow:hidden;background:radial-gradient(ellipse at 60% 0,#25365d,#0a1225);border-bottom:1px solid #364979}
+.office-skyline span{position:absolute;bottom:0;width:var(--width);height:var(--height);left:var(--left);border:1px solid #40527d;background:repeating-linear-gradient(0deg,transparent 0 4px,#111b31 4px 7px),repeating-linear-gradient(90deg,#202d49 0 4px,#7888a1 4px 6px);opacity:var(--opacity)}
+.office-skyline span:nth-child(3n){filter:hue-rotate(29deg)}
+#office-3d-stage{background:linear-gradient(#111d36,#080e1f)}
+#office-3d-stage .office-skyline{height:100%;position:absolute;inset:0;opacity:.56;border:0;pointer-events:none}
+#office-3d-stage canvas{position:relative}
+.office-avatar-caption{box-shadow:0 0 12px #5ca4f02f}
 </style>
 <header><h2>AI Agency</h2><small>โหมดจำลอง · สถานะและข้อความเป็นตัวอย่าง</small></header>
 <div class="layout">
-<div><section id="office-3d" aria-label="ออฟฟิศสามมิติ">
-<div id="office-3d-stage" data-selected="1"></div>
+<div><div class="office-skyline" aria-hidden="true"><span style="--width:4%;--height:24%;--left:0.0%;--opacity:0.50"></span><span style="--width:7%;--height:47%;--left:5.25%;--opacity:0.62"></span><span style="--width:10%;--height:70%;--left:10.5%;--opacity:0.74"></span><span style="--width:5%;--height:26%;--left:15.75%;--opacity:0.86"></span><span style="--width:8%;--height:49%;--left:21.0%;--opacity:0.50"></span><span style="--width:11%;--height:72%;--left:26.25%;--opacity:0.62"></span><span style="--width:6%;--height:28%;--left:31.5%;--opacity:0.74"></span><span style="--width:9%;--height:51%;--left:36.75%;--opacity:0.86"></span><span style="--width:4%;--height:74%;--left:42.0%;--opacity:0.50"></span><span style="--width:7%;--height:30%;--left:47.25%;--opacity:0.62"></span><span style="--width:10%;--height:53%;--left:52.5%;--opacity:0.74"></span><span style="--width:5%;--height:76%;--left:57.75%;--opacity:0.86"></span><span style="--width:8%;--height:32%;--left:63.0%;--opacity:0.50"></span><span style="--width:11%;--height:55%;--left:68.25%;--opacity:0.62"></span><span style="--width:6%;--height:78%;--left:73.5%;--opacity:0.74"></span><span style="--width:9%;--height:34%;--left:78.75%;--opacity:0.86"></span><span style="--width:4%;--height:57%;--left:84.0%;--opacity:0.50"></span><span style="--width:7%;--height:80%;--left:89.25%;--opacity:0.62"></span><span style="--width:10%;--height:36%;--left:94.5%;--opacity:0.74"></span></div>
+<section id="office-3d" aria-label="ออฟฟิศสามมิติ">
+<div id="office-3d-stage" data-selected="1"><div class="office-skyline" aria-hidden="true"><span style="--width:4%;--height:24%;--left:0.0%;--opacity:0.50"></span><span style="--width:7%;--height:47%;--left:5.25%;--opacity:0.62"></span><span style="--width:10%;--height:70%;--left:10.5%;--opacity:0.74"></span><span style="--width:5%;--height:26%;--left:15.75%;--opacity:0.86"></span><span style="--width:8%;--height:49%;--left:21.0%;--opacity:0.50"></span><span style="--width:11%;--height:72%;--left:26.25%;--opacity:0.62"></span><span style="--width:6%;--height:28%;--left:31.5%;--opacity:0.74"></span><span style="--width:9%;--height:51%;--left:36.75%;--opacity:0.86"></span><span style="--width:4%;--height:74%;--left:42.0%;--opacity:0.50"></span><span style="--width:7%;--height:30%;--left:47.25%;--opacity:0.62"></span><span style="--width:10%;--height:53%;--left:52.5%;--opacity:0.74"></span><span style="--width:5%;--height:76%;--left:57.75%;--opacity:0.86"></span><span style="--width:8%;--height:32%;--left:63.0%;--opacity:0.50"></span><span style="--width:11%;--height:55%;--left:68.25%;--opacity:0.62"></span><span style="--width:6%;--height:78%;--left:73.5%;--opacity:0.74"></span><span style="--width:9%;--height:34%;--left:78.75%;--opacity:0.86"></span><span style="--width:4%;--height:57%;--left:84.0%;--opacity:0.50"></span><span style="--width:7%;--height:80%;--left:89.25%;--opacity:0.62"></span><span style="--width:10%;--height:36%;--left:94.5%;--opacity:0.74"></span></div></div>
 <div class="office-3d-controls">
 <small id="office-3d-notice" role="status">กำลังโหลดฉาก 3D</small>
 <button id="office-3d-in" type="button" aria-label="ซูมเข้า">+</button>
@@ -229,15 +238,25 @@ try {
     const strip=part(room,'box',color,[4.25,.04,.055],[0,.075,1.292]);
     strip.material.emissive.setHex(color);
     strip.material.emissiveIntensity=.65;
-    part(room,'box',0x303c59,[4.25,1.24,.12],[0,.66,-1.27]);
-    part(room,'box',color,[2.9,.46,.05],[.15,.94,-1.19]);
+    for (const x of [-2.06,0,2.06]) part(room,'box',0x526887,[.065,1.55,.12],[x,.85,-1.27]);
+    part(room,'box',0x526887,[4.17,.07,.12],[0,1.60,-1.27]);
+    part(room,'box',0x303c59,[4.17,.22,.12],[0,.20,-1.27]);
+    const windowpane=part(room,'box',0x356391,[4.13,1.29,.028],[0,.89,-1.28]);
+    windowpane.material.transparent=true;
+    windowpane.material.opacity=.22;
+    windowpane.material.depthWrite=false;
     const side = i % 2 ? 2.06 : -2.06;
     part(room,'box',color,[.12,.84,2.55],[side,.48,0]);
     part(room,'box',0x42506e,[2.2,.13,.77],[.54,.71,.55]);
     part(room,'box',0x293858,[.12,.59,.55],[-.43,.38,.55]);
     part(room,'box',0x293858,[.12,.59,.55],[1.51,.38,.55]);
-    part(room,'box',0x32374e,[.64,.43,.06],[1.03,1.02,.51]).rotation.y=-.28;
-    part(room,'box',0xc9dcff,[.53,.32,.015],[1.03,1.02,.548]).rotation.y=-.28;
+    part(room,'box',0xcfd8ea,[.71,.43,.055],[-.47,1.075,1.035]);
+    part(room,'box',0x11162d,[.66,.36,.016],[-.47,1.10,1.001]);
+    const display=part(room,'box',color,[.59,.29,.012],[-.47,1.10,.990]);
+    display.material.emissive.setHex(color);
+    display.material.emissiveIntensity=.27;
+    part(room,'box',0xb7c6df,[.09,.18,.085],[-.47,.865,1.07]);
+    part(room,'box',0xcfd8ea,[.30,.022,.18],[-.47,.805,1.04]);
     const deskProps = [
       [0xd8dfe9,.42,.05,.30], [0xf6d167,.37,.05,.28],
       [0x505972,.60,.064,.36], [0x7360b3,.52,.07,.34],
@@ -276,7 +295,16 @@ try {
     part(room,'ball',hair[i],[.96,.52,.89],[-.47,1.79,-.13]);
     part(room,'ball',hair[i],[.38,.47,.43],[-.82,1.64,.07]).rotation.z=-.28;
     part(room,'ball',hair[i],[.32,.38,.36],[-.19,1.72,.13]);
-    for (const x of [-.63,-.32]) part(room,'ball',0x251d33,[.10,.14,.07],[x,1.50,.30]);
+    const iris=[0x745033,0x5c294f,0x315c38,0x6349a9,0x2a758c,0x303f7e][i];
+    for (const [eye,x] of [-.63,-.32].entries()) {
+      part(room,'ball',0xfff7ef,[.143,.154,.044],[x,1.505,.278]);
+      part(room,'ball',iris,[.093,.115,.042],[x+.016,1.50,.307]);
+      part(room,'ball',0x211a2d,[.051,.080,.025],[x+.021,1.50,.324]);
+      part(room,'ball',0xffffff,[.023,.023,.018],[x+.008,1.53,.339]);
+      const brow=part(room,'ball',hair[i],[.13,.027,.03],[x,1.621+((i+eye)%2)*.018,.286]);
+      brow.rotation.z=eye ? -.14 : .14;
+    }
+    part(room,'ball',skin,[.096,.075,.064],[-.47,1.442,.325]);
     const smileCurve=new T.QuadraticBezierCurve3(
       new T.Vector3(-.585,1.375,.306),
       new T.Vector3(-.47,1.265,.336),
@@ -418,6 +446,7 @@ try {
     const {avatar,room,home} = person;
     const other = avatars[trip.to];
     const origin = room.position.clone().add(home);
+    avatar.position.copy(home);
     const destination = other.room.position.clone().add(other.home).add(new T.Vector3(.7,0,.4));
     const sourceExit = new T.Vector3(0,0,origin.z);
     const targetExit = new T.Vector3(0,0,destination.z);
@@ -527,13 +556,32 @@ try {
     render();
   }
   new MutationObserver(updateLabels).observe(view,{attributes:true,attributeFilter:['data-selected','data-roles']});
+  let activityStart;
   renderer.setAnimationLoop(now=>{
     if (reducedMotion.matches) return;
+    activityStart ??= now;
     avatars.forEach((person,i)=>{
       const {avatar,home,inTransit}=person;
       if (inTransit) return;
       const phase=now*.002+i*1.32;
       const working=displayedRoles[i]?.status==='กำลังทำงาน';
+      const cycle=((now-activityStart)+i*1520)%10100;
+      const patrol=cycle>=5100 && (hovered!==i || person.roaming);
+      if (patrol) {
+        person.roaming=true;
+        const progress=(cycle-5100)/5000;
+        const travel=Math.sin(progress*Math.PI);
+        const direction=i%2 ? -1 : 1;
+        avatar.position.set(home.x+direction*travel*1.06,home.y+.07+Math.abs(Math.sin(phase*7))*.055,home.z-travel*.46);
+        avatar.rotation.y=progress<.5 ? direction*1.9 : -direction*1.1;
+        hoverTargets[i].position.set(avatar.position.x,1.47+avatar.position.y,avatar.position.z);
+        pose(person,phase*7,true);
+        return;
+      }
+      person.roaming=false;
+      avatar.position.x=home.x;
+      avatar.position.z=home.z;
+      hoverTargets[i].position.set(home.x,1.47,home.z);
       person.stand += (Number(i===hovered)-person.stand)*.19;
       const rise=person.stand*.26 + Math.sin(person.stand*Math.PI)*.055;
       avatar.position.y=home.y+rise+Math.sin(phase)*.012;
