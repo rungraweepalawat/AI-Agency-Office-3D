@@ -1,0 +1,387 @@
+<!doctype html>
+<html lang="th">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Agency Office</title>
+<style>
+:root{font:16px system-ui,sans-serif;color:#192132;background:#f7f8fc}
+*{box-sizing:border-box}
+body{margin:0}
+header,main{max-width:1440px;margin:auto;padding:24px 30px}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-bottom:0}
+h1,h2,p{margin:0}
+h1{font-size:clamp(1.5rem,3vw,2.2rem);letter-spacing:-.05em}
+h2{font-size:1.05rem;margin-bottom:12px}
+small,.muted{color:#515e73;font-size:.875rem}
+main{display:grid;grid-template-columns:2.1fr 1fr;gap:22px}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:20px}
+.room{border:1px solid #d7deea;border-radius:16px;background:white;overflow:hidden;text-align:left;padding:0;cursor:pointer;color:inherit}
+.room[aria-pressed=true]{outline:2px solid #344976;outline-offset:2px}
+.avatar{display:grid;place-items:center;height:110px;background:var(--tone);font-size:3.25rem}
+.support .avatar{height:76px;font-size:2.4rem}
+.room-info{display:grid;gap:6px;padding:12px;font-size:.94rem}
+.status{display:flex;align-items:center;gap:7px;font-size:.875rem;color:#45516a}
+.status:before{content:"";width:9px;height:9px;border-radius:50%;background:#8c97a9}
+.status.running:before{background:#7245d9}
+.status.queued:before{background:#c37c00}
+.status.done:before{background:#138252}
+.status.failed:before{background:#c32947}
+aside{display:grid;grid-template-rows:minmax(190px, .75fr) minmax(320px,1.25fr);gap:14px;min-width:0}
+.panel{display:flex;flex-direction:column;min-height:0;background:white;border:1px solid #d7deea;border-radius:16px;padding:16px}
+.region{overflow:auto;max-height:290px;overflow-wrap:anywhere}
+.row{padding:10px 0;border-bottom:1px solid #e8ecf2}
+.row p{white-space:pre-wrap}
+form{margin-top:auto;padding-top:12px;display:grid;gap:8px}
+.compose{display:flex;gap:8px}
+input,button{font:inherit}
+input{min-width:0;flex:1;border:1px solid #adb9cd;border-radius:9px;padding:9px}
+.send{border:0;border-radius:9px;background:#26385e;color:white;padding:8px 15px;cursor:pointer}
+button:disabled{opacity:.55;cursor:default}
+@media(max-width:850px){main{grid-template-columns:1fr} header,main{padding-inline:16px}aside{grid-template-rows:auto auto}.panel{min-height:180px}}
+#office-3d{background:linear-gradient(140deg,#e0e7ff,#fceaf6);border:1px solid #d7deea;border-radius:15px;margin-bottom:14px;color:#202437;overflow:hidden}
+#office-3d-stage{height:clamp(300px,42vw,490px);position:relative}
+#office-3d-stage canvas{width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+.office-3d-controls{display:flex;align-items:center;gap:7px;flex-wrap:wrap;padding:8px 10px;background:#f9f7ff}
+.office-3d-controls small{flex:1;color:#394158}
+.office-3d-controls button{min-height:34px;background:#fff;color:#202437;border:1px solid #d0d7ea;border-radius:7px;padding:4px 9px;font:inherit}
+</style>
+<header><h1>AI Agency</h1><span id="connection" class="muted" role="status">กำลังเชื่อมต่อ</span></header>
+<main>
+<section aria-label="ออฟฟิศ">
+<section id="office-3d" aria-label="ออฟฟิศสามมิติ">
+<div id="office-3d-stage" data-selected="1"></div>
+<div class="office-3d-controls">
+<small id="office-3d-notice" role="status">กำลังโหลดฉาก 3D</small>
+<button id="office-3d-in" type="button" aria-label="ซูมเข้า">+</button>
+<button id="office-3d-out" type="button" aria-label="ซูมออก">−</button>
+<button id="office-3d-reset" type="button">มุมมองรวม</button>
+<small id="office-3d-journey" role="status"></small>
+</div>
+</section>
+<h2>ทีมหลัก</h2><div class="grid" id="main-team"></div>
+<h2>ทีมเบื้องหลัง</h2><div class="grid support" id="support-team"></div>
+<p class="muted">ตัวละครเป็นภาพแทนชั่วคราว · คลิกห้องเพื่อเลือกผู้ช่วย</p>
+</section>
+<aside>
+<section class="panel"><h2>รายการงาน</h2><div class="region" id="tasks"></div></section>
+<section class="panel"><h2>แชท</h2><div class="region" id="chat" role="log"></div>
+<form id="form"><label id="recipient" for="message"></label><div class="compose"><input id="message" placeholder="พิมพ์โจทย์งาน" maxlength="4000" required><button class="send" type="submit">ส่ง</button></div><label id="handoff-option" hidden><input type="checkbox" id="handoff"> ส่งบรีฟให้ Graphic Designer อัตโนมัติ</label><p id="error" role="alert" class="muted"></p></form></section>
+</aside>
+</main>
+<script>
+const roles = [
+  ['sales','Sales & Account Executive','🧑‍💼','#e9f4c8'],
+  ['content','Content Planner','💡','#fbe1ed'],
+  ['graphics','Graphic Designer','🧑‍🎨','#d8f6e9'],
+  ['video','Video Editor','🎬','#e9defa'],
+  ['seo','SEO Specialist','🕵️','#d9f4f8'],
+  ['web','Web Developer','🧑‍💻','#dfe9fd'],
+];
+const labels = {idle:'ยังไม่มีงาน',queued:'รอทำงาน',running:'กำลังทำงาน',done:'ทำเสร็จแล้ว',failed:'งานไม่สำเร็จ'};
+const el = id => document.getElementById(id);
+const rooms = new Map();
+const names = new Map(roles.map(([id,name]) => [id,name]));
+let selected = 'sales';
+let jobs = [];
+let signature = '';
+let firstSnapshot = true;
+const seenHandoffs = new Set();
+for (const [index,[id,name,character,tone]] of roles.entries()) {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'room';
+  button.style.setProperty('--tone',tone);
+  button.innerHTML = '<span class="avatar" aria-hidden="true"></span><span class="room-info"><strong></strong><span class="status"></span></span>';
+  button.querySelector('.avatar').textContent = character;
+  button.querySelector('strong').textContent = name;
+  button.onclick = () => {selected=id; render();};
+  rooms.set(id,button);
+  el(index<4?'main-team':'support-team').append(button);
+}
+function text(parent,tag,value,className='') {
+  const node = document.createElement(tag);
+  node.className = className;
+  node.textContent = value;
+  parent.append(node);
+  return node;
+}
+const stage = el('office-3d-stage');
+stage.addEventListener('office-room', event => { selected = roles[event.detail][0]; render(); });
+function render() {
+  stage.dataset.selected = roles.findIndex(role => role[0] === selected);
+  for (const [id,room] of rooms) {
+    const assigned = jobs.filter(job => job.role===id);
+    const state = assigned.find(job => job.status==='running')?.status
+      || assigned.find(job => job.status==='queued')?.status
+      || assigned.at(-1)?.status || 'idle';
+    room.setAttribute('aria-pressed',String(id===selected));
+    const status = room.querySelector('.status');
+    status.className = 'status '+state;
+    status.textContent = labels[state];
+  }
+  el('handoff-option').hidden = selected !== 'content';
+  el('recipient').textContent = 'ส่งถึง '+names.get(selected);
+  const tasks=el('tasks');
+  const chat=el('chat');
+  tasks.replaceChildren();
+  chat.replaceChildren();
+  if (!jobs.length) text(tasks,'p','ยังไม่มีงาน','muted');
+  for (const job of [...jobs].reverse()) {
+    const row=text(tasks,'div','','row');
+    text(row,'strong',job.prompt);
+    if (job.parent_id) text(row,'small','รับบรีฟต่อจาก Content Planner');
+    text(row,'div',names.get(job.role)+' · '+labels[job.status],'status '+job.status);
+  }
+  const thread=jobs.filter(job => job.role===selected);
+  if (!thread.length) text(chat,'p','ยังไม่มีข้อความสำหรับผู้ช่วยนี้','muted');
+  for (const job of thread) {
+    const row=text(chat,'div','','row');
+    text(row,'strong','คุณ');
+    text(row,'p',job.prompt);
+    if(job.answer) {
+      text(row,'strong',names.get(job.role));
+      text(row,'p',job.answer);
+    } else text(row,'small',labels[job.status]);
+  }
+}
+async function refresh() {
+  try {
+    const response=await fetch('/api/jobs');
+    if (!response.ok) throw Error();
+    const incoming=await response.json();
+    const next=JSON.stringify(incoming);
+    el('connection').textContent='เชื่อมต่อคิวงานในเครื่อง';
+    if (next!==signature) {
+      jobs=incoming;
+      signature=next;
+      for (const job of jobs) {
+        if (!job.parent_id || seenHandoffs.has(job.id)) continue;
+        seenHandoffs.add(job.id);
+        const parent=jobs.find(item=>item.id===job.parent_id);
+        if (!firstSnapshot && parent) {
+          stage.dispatchEvent(new CustomEvent('office-handoff',{detail:{
+            from:roles.findIndex(role=>role[0]===parent.role),
+            to:roles.findIndex(role=>role[0]===job.role),
+            label:names.get(parent.role)+' ส่งบรีฟให้ '+names.get(job.role)
+          }}));
+        }
+      }
+      firstSnapshot=false;
+      render();
+    }
+  } catch {
+    el('connection').textContent='ขาดการเชื่อมต่อ · สถานะล่าสุดอาจเก่า';
+  }
+}
+el('form').addEventListener('submit',async event => {
+  event.preventDefault();
+  const input=el('message');
+  const prompt=input.value.trim();
+  if (!prompt) return;
+  const send=event.currentTarget.querySelector('button');
+  send.disabled=true;
+  el('error').textContent='';
+  try {
+    const response=await fetch('/api/jobs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({role:selected,prompt,handoff:selected==='content' && el('handoff').checked})});
+    if (!response.ok) throw Error((await response.json()).error);
+    if (input.value.trim()===prompt) input.value='';
+    await refresh();
+  } catch(error) {
+    el('error').textContent=error.message || 'ส่งงานไม่สำเร็จ';
+  } finally {send.disabled=false;}
+});
+render();
+refresh();
+setInterval(refresh,1500);
+</script>
+<script type="module">
+const view = document.getElementById('office-3d-stage');
+const notice = document.getElementById('office-3d-notice');
+try {
+  const T = await import('https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js');
+  const renderer = new T.WebGLRenderer({antialias:true, alpha:true});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.outputColorSpace = T.SRGBColorSpace;
+  view.append(renderer.domElement);
+  const scene = new T.Scene();
+  scene.add(new T.HemisphereLight(0xffffff, 0x8a8dab, 2.4));
+  const lamp = new T.DirectionalLight(0xffffff, 2);
+  lamp.position.set(3, 9, 7);
+  scene.add(lamp);
+  const camera = new T.PerspectiveCamera(38, 1, .1, 80);
+  const colors = [0xa1d52c,0xf84599,0x21ceb3,0x8950ed,0x23b8dc,0x3672ee];
+  const hair = [0xffbe56,0xab1458,0xef581e,0x4c22bc,0xe8e9ff,0x20294b];
+  const group = new T.Group();
+  scene.add(group);
+  const hit = [];
+  const roomEdges = [];
+  const avatars = [];
+  const geometry = {
+    box:new T.BoxGeometry(1,1,1),
+    ball:new T.SphereGeometry(.5,24,16),
+    capsule:new T.CapsuleGeometry(.25,.5,8,16),
+  };
+  function part(room, shape, color, size, xyz) {
+    const object = new T.Mesh(geometry[shape],new T.MeshStandardMaterial({color,roughness:.62}));
+    object.scale.set(...size);
+    object.position.set(...xyz);
+    object.userData.room = room.userData.room;
+    room.add(object);
+    hit.push(object);
+    return object;
+  }
+  colors.forEach((color, i) => {
+    const room = new T.Group();
+    room.userData.room = i;
+    room.position.set(i%2 ? 2.65 : -2.65, 0, (Math.floor(i/2)-1)*2.9);
+    group.add(room);
+    part(room,'box',color,[4.25,.19,2.62],[0,0,0]);
+    part(room,'box',color,[4.25,1.53,.12],[0,.82,-1.27]);
+    const side = i % 2 ? 2.06 : -2.06;
+    part(room,'box',color,[.12,.84,2.55],[side,.48,0]);
+    part(room,'box',0xffffff,[2.2,.13,.77],[.54,.71,.55]);
+    part(room,'box',0xe3e6f4,[.12,.59,.55],[-.43,.38,.55]);
+    part(room,'box',0xe3e6f4,[.12,.59,.55],[1.51,.38,.55]);
+    part(room,'box',0x32374e,[.64,.43,.06],[1.03,1.02,.51]).rotation.y=-.28;
+    part(room,'box',0xc9dcff,[.53,.32,.015],[1.03,1.02,.548]).rotation.y=-.28;
+    const firstAvatarPart = room.children.length;
+    const skin = i===1 ? 0xd89470 : 0xffbd91;
+    part(room,'capsule',hair[i],[1.13,.7,.93],[-.47,.87,-.12]);
+    part(room,'ball',skin,[.89,.93,.84],[-.47,1.48,-.09]);
+    part(room,'ball',hair[i],[.96,.52,.89],[-.47,1.79,-.13]);
+    part(room,'ball',hair[i],[.38,.47,.43],[-.82,1.64,.07]).rotation.z=-.28;
+    part(room,'ball',hair[i],[.32,.38,.36],[-.19,1.72,.13]);
+    for (const x of [-.63,-.32]) part(room,'ball',0x251d33,[.10,.14,.07],[x,1.50,.30]);
+    part(room,'ball',0xa54258,[.15,.052,.04],[-.47,1.35,.32]);
+    part(room,'capsule',skin,[.55,.57,.56],[-.12,.93,.22]).rotation.z=.84;
+    if (i===0 || i===3) {
+      for (const x of [-.91,-.03]) part(room,'ball',0x444058,[.22,.34,.29],[x,1.53,-.035]);
+    }
+    if (i===4) {
+      const lens = new T.Mesh(new T.TorusGeometry(.19,.028,8,24),new T.MeshStandardMaterial({color:0x163854}));
+      lens.position.set(-.74,1.37,.42);
+      lens.userData.room=i;
+      room.add(lens);
+      hit.push(lens);
+    }
+    const legs = [-.63,-.31].map(x => part(room,'capsule',0x34344a,[.56,.57,.58],[x,.40,-.1]));
+    const pieces = room.children.slice(firstAvatarPart);
+    const avatar = new T.Group();
+    avatar.position.set(-.47,0,-.10);
+    room.add(avatar);
+    for (const mesh of pieces) {
+      mesh.position.sub(avatar.position);
+      avatar.add(mesh);
+    }
+    avatars.push({avatar,legs,room,home:avatar.position.clone()});
+    const edge = new T.LineSegments(new T.EdgesGeometry(new T.BoxGeometry(4.3,.21,2.67)),new T.LineBasicMaterial({color:0xffffff}));
+    room.add(edge);
+    roomEdges.push(edge);
+  });
+  let angle=.18, elevation=.91, radius=14.6, start=null;
+  const target=new T.Vector3(0,.44,0);
+  function render() {
+    const width = view.clientWidth;
+    const height = view.clientHeight;
+    if (!width || !height) return;
+    renderer.setSize(width,height,false);
+    camera.aspect=width/height;
+    camera.fov=width/height<1 ? 49 : 38;
+    camera.updateProjectionMatrix();
+    camera.position.set(target.x+Math.sin(angle)*Math.cos(elevation)*radius,target.y+Math.sin(elevation)*radius,target.z+Math.cos(angle)*Math.cos(elevation)*radius);
+    camera.lookAt(target);
+    roomEdges.forEach((edge,i)=>edge.material.color.set(i===Number(view.dataset.selected) ? 0xffd148 : 0xffffff));
+    renderer.render(scene,camera);
+  }
+  const trips = [];
+  let walking = false;
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const journey = document.getElementById('office-3d-journey');
+  function nextTrip() {
+    const trip = trips.shift();
+    if (!trip) { walking=false; return; }
+    const {avatar,legs,room,home} = avatars[trip.from];
+    const other = avatars[trip.to];
+    const origin = room.position.clone().add(home);
+    const destination = other.room.position.clone().add(other.home).add(new T.Vector3(.7,0,.4));
+    const sourceExit = new T.Vector3(0,0,origin.z);
+    const targetExit = new T.Vector3(0,0,destination.z);
+    journey.textContent = trip.label;
+    if (reducedMotion.matches) { nextTrip(); return; }
+    walking = true;
+    const path = new T.CurvePath();
+    const points = [origin,sourceExit,targetExit,destination,targetExit,sourceExit,origin];
+    for (let i=1;i<points.length;i++) {
+      if (points[i].distanceToSquared(points[i-1]) > .001) {
+        path.add(new T.LineCurve3(points[i-1],points[i]));
+      }
+    }
+    const startTime = performance.now();
+    const duration = Math.max(2150,path.getLength()*310);
+    function walk(now) {
+      const progress = Math.min((now-startTime)/duration,1);
+      const position = path.getPoint(progress);
+      const ahead = path.getPoint(Math.min(progress+.004,1));
+      const stride = Math.sin((now-startTime)*.018);
+      avatar.position.copy(position.sub(room.position));
+      avatar.position.y = .05 + Math.abs(stride)*.1;
+      avatar.rotation.y = Math.atan2(ahead.x-avatar.position.x-room.position.x,ahead.z-avatar.position.z-room.position.z);
+      legs[0].rotation.x = stride*.48;
+      legs[1].rotation.x = -stride*.48;
+      if (progress === 1) {
+        avatar.position.copy(home);
+        avatar.rotation.y=0;
+        legs.forEach(leg=>{leg.rotation.x=0;});
+      }
+      render();
+      if (progress < 1) requestAnimationFrame(walk);
+      else nextTrip();
+    }
+    requestAnimationFrame(walk);
+  }
+  view.addEventListener('office-handoff', event => {
+    const trip=event.detail;
+    if (!avatars[trip.from] || !avatars[trip.to] || trip.from===trip.to) return;
+    trips.push(trip);
+    if (!walking) nextTrip();
+  });
+  const ray=new T.Raycaster();
+  const vector=new T.Vector2();
+  const canvas=renderer.domElement;
+  canvas.addEventListener('pointerdown',e=>{
+    start={x:e.clientX,y:e.clientY, angle,elevation};
+    canvas.setPointerCapture(e.pointerId);
+  });
+  canvas.addEventListener('pointermove',e=>{
+    if(!start) return;
+    angle=start.angle-(e.clientX-start.x)*.009;
+    elevation=Math.max(.30,Math.min(1.44,start.elevation+(e.clientY-start.y)*.007));
+    render();
+  });
+  canvas.addEventListener('pointerup',e=>{
+    if (!start) return;
+    const click=Math.hypot(e.clientX-start.x,e.clientY-start.y)<5;
+    start=null;
+    if (!click) return;
+    const rect=canvas.getBoundingClientRect();
+    vector.set((e.clientX-rect.left)/rect.width*2-1,1-(e.clientY-rect.top)/rect.height*2);
+    ray.setFromCamera(vector,camera);
+    const location=ray.intersectObjects(hit)[0];
+    if(location) view.dispatchEvent(new CustomEvent('office-room',{detail:location.object.userData.room}));
+  });
+  canvas.addEventListener('pointercancel',()=>{start=null;});
+  function zoom(change) { radius=Math.max(10,Math.min(23,radius+change)); render(); }
+  canvas.addEventListener('wheel',e=>{e.preventDefault();zoom(Math.sign(e.deltaY)*.75);},{passive:false});
+  document.getElementById('office-3d-in').onclick=()=>zoom(-1);
+  document.getElementById('office-3d-out').onclick=()=>zoom(1);
+  document.getElementById('office-3d-reset').onclick=()=>{angle=.18;elevation=.91;radius=14.6;render();};
+  new ResizeObserver(render).observe(view);
+  new MutationObserver(render).observe(view,{attributes:true,attributeFilter:['data-selected']});
+  notice.textContent='ลากเพื่อหมุน · คลิกห้องเพื่อเลือกผู้ช่วย';
+  render();
+} catch {
+  notice.textContent='ฉาก 3D เปิดไม่ได้บนอุปกรณ์นี้ · เลือกผู้ช่วยจากการ์ดด้านล่างได้';
+  for(const id of ['office-3d-in','office-3d-out','office-3d-reset']) document.getElementById(id).disabled=true;
+}
+</script>
+</html>
