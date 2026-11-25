@@ -47,6 +47,22 @@
 #agency-sim .rooms{gap:16px}
 #agency-sim .room{position:relative}
 #agency-sim .room .card-activity{position:absolute;inset:7px auto auto 7px;max-width:calc(100% - 14px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:#172032ec;color:#fff;border-radius:6px;padding:4px 7px;font-size:12px}
+
+html{background:#080d1b;color-scheme:dark}
+body{margin:0;background:#080d1b;color:#edf3ff}
+#agency-sim{--paper:#080d1b;--tile:#141e32;--ink:#edf3ff;--line:#394664;background:#080d1b;color:#edf3ff}
+#agency-sim article,#agency-sim button,#agency-sim input{color:#edf3ff}
+#agency-sim .room{background:#151d32}
+#office-3d{background:#0d1528;border-color:#34486e;color:#edf3ff}
+#office-3d-stage{background:radial-gradient(ellipse at 50% 42%,#1e2b4d,#0b1021)}
+.office-3d-controls{background:#111b31}
+.office-3d-controls small{color:#d1dfff}
+.office-3d-controls button{background:#202e4b;color:#edf3ff;border-color:#405278}
+.office-avatar-caption{background:#141f38f5;color:#f1f6ff;border-color:#425987}
+.office-avatar-caption small{color:#bcdbff}
+#agency-sim .card-activity::before{content:"";display:inline-block;width:6px;height:6px;margin-right:6px;border-radius:50%;background:#81bfff;animation:office-indicator 2s ease-in-out infinite}
+@keyframes office-indicator{50%{opacity:.45}}
+@media(prefers-reduced-motion:reduce){#agency-sim .card-activity::before{animation:none}}
 </style>
 <header><h2>AI Agency</h2><small>โหมดจำลอง · สถานะและข้อความเป็นตัวอย่าง</small></header>
 <div class="layout">
@@ -182,10 +198,10 @@ try {
   const captions = [];
   const headPosition = new T.Vector3();
   const sizes = {width:0,height:0};
-  const floor = new T.Mesh(new T.BoxGeometry(12.2,.24,11.6),new T.MeshStandardMaterial({color:0xe9edf7}));
+  const floor = new T.Mesh(new T.BoxGeometry(12.2,.24,11.6),new T.MeshStandardMaterial({color:0x151d36}));
   floor.position.y=-.235;
   group.add(floor);
-  const walkway = new T.Mesh(new T.BoxGeometry(2.1,.03,11.15),new T.MeshStandardMaterial({color:0xcbd5eb}));
+  const walkway = new T.Mesh(new T.BoxGeometry(2.1,.03,11.15),new T.MeshStandardMaterial({color:0x2b3d66}));
   walkway.position.y=-.10;
   group.add(walkway);
   const geometry = {
@@ -207,14 +223,17 @@ try {
     room.userData.room = i;
     room.position.set(i%2 ? 3.35 : -3.35, 0, (Math.floor(i/2)-1)*3.55);
     group.add(room);
-    part(room,'box',color,[4.25,.19,2.62],[0,0,0]);
-    part(room,'box',0xf4f6fc,[4.25,1.24,.12],[0,.66,-1.27]);
+    part(room,'box',0x273350,[4.25,.19,2.62],[0,0,0]);
+    const strip=part(room,'box',color,[4.25,.04,.055],[0,.075,1.292]);
+    strip.material.emissive.setHex(color);
+    strip.material.emissiveIntensity=.65;
+    part(room,'box',0x303c59,[4.25,1.24,.12],[0,.66,-1.27]);
     part(room,'box',color,[2.9,.46,.05],[.15,.94,-1.19]);
     const side = i % 2 ? 2.06 : -2.06;
     part(room,'box',color,[.12,.84,2.55],[side,.48,0]);
-    part(room,'box',0xffffff,[2.2,.13,.77],[.54,.71,.55]);
-    part(room,'box',0xe3e6f4,[.12,.59,.55],[-.43,.38,.55]);
-    part(room,'box',0xe3e6f4,[.12,.59,.55],[1.51,.38,.55]);
+    part(room,'box',0x42506e,[2.2,.13,.77],[.54,.71,.55]);
+    part(room,'box',0x293858,[.12,.59,.55],[-.43,.38,.55]);
+    part(room,'box',0x293858,[.12,.59,.55],[1.51,.38,.55]);
     part(room,'box',0x32374e,[.64,.43,.06],[1.03,1.02,.51]).rotation.y=-.28;
     part(room,'box',0xc9dcff,[.53,.32,.015],[1.03,1.02,.548]).rotation.y=-.28;
     const deskProps = [
@@ -224,6 +243,12 @@ try {
     ];
     const [propColor,propWidth,propHeight,propDepth] = deskProps[i];
     part(room,'box',propColor,[propWidth,propHeight,propDepth],[.22,.81,.6]);
+    part(room,'box',0x475773,[1.14,.10,.53],[-.47,.74,.88]);
+    part(room,'box',0x17243b,[.60,.035,.22],[-.47,.81,.81]);
+    for (let key=0;key<7;key++) part(room,'box',0x76a9dc,[.057,.012,.047],[-.72+key*.081,.833,.81]);
+    part(room,'box',0x272e49,[.65,.12,.57],[-.47,.47,-.39]);
+    part(room,'box',0x333f63,[.66,.56,.095],[-.47,.72,-.66]);
+    part(room,'box',0x252e49,[.1,.4,.1],[-.47,.23,-.39]);
     const firstAvatarPart = room.children.length;
     const skin = i===1 ? 0xd89470 : 0xffbd91;
     part(room,'capsule',hair[i],[1.13,.7,.93],[-.47,.87,-.12]);
@@ -233,8 +258,10 @@ try {
     part(room,'ball',hair[i],[.32,.38,.36],[-.19,1.72,.13]);
     for (const x of [-.63,-.32]) part(room,'ball',0x251d33,[.10,.14,.07],[x,1.50,.30]);
     part(room,'ball',0xa54258,[.15,.052,.04],[-.47,1.35,.32]);
-    const arm = part(room,'capsule',skin,[.44,.54,.45],[-.12,.93,.22]);
-    arm.rotation.z=.84;
+    const limb = (color,width) => part(room,'capsule',color,[width,1,width],[0,0,0]);
+    const upperArms = [limb(hair[i],.39),limb(hair[i],.39)];
+    const forearms = [limb(skin,.28),limb(skin,.28)];
+    const hands = [-.24,.24].map(x=>part(room,'ball',skin,[.15,.096,.16],[-.47+x,.88,.70]));
     if (i===0) part(room,'ball',hair[i],[.43,.40,.44],[-.50,2.01,-.2]);
     if (i===1) {
       part(room,'ball',0xff8ebd,[.29,.16,.12],[-.63,1.88,.17]);
@@ -252,7 +279,9 @@ try {
       room.add(lens);
       hit.push(lens);
     }
-    const legs = [-.63,-.31].map(x => part(room,'capsule',0x34344a,[.56,.57,.58],[x,.40,-.1]));
+    const legs = [limb(0x343a58,.47),limb(0x343a58,.47)];
+    const shins = [limb(0x343a58,.40),limb(0x343a58,.40)];
+    const shoes = [-.16,.16].map(x=>part(room,'box',0x22273a,[.20,.11,.31],[-.47+x,.14,.34]));
     const pieces = room.children.slice(firstAvatarPart);
     const avatar = new T.Group();
     avatar.position.set(-.47,0,-.10);
@@ -261,7 +290,7 @@ try {
       mesh.position.sub(avatar.position);
       avatar.add(mesh);
     }
-    avatars.push({avatar,legs,arm,room,home:avatar.position.clone(),inTransit:false});
+    avatars.push({avatar,legs,shins,shoes,upperArms,forearms,hands,room,home:avatar.position.clone(),inTransit:false});
     const caption = document.createElement('span');
     caption.className = 'office-avatar-caption';
     caption.setAttribute('aria-hidden','true');
@@ -274,6 +303,34 @@ try {
     room.add(edge);
     roomEdges.push(edge);
   });
+  const limbAxis = new T.Vector3(0,1,0);
+  const limbDirection = new T.Vector3();
+  function connect(mesh,a,b) {
+    limbDirection.subVectors(b,a);
+    mesh.position.copy(a).lerp(b,.5);
+    mesh.scale.y=limbDirection.length();
+    mesh.quaternion.setFromUnitVectors(limbAxis,limbDirection.normalize());
+  }
+  function pose(person,phase,walking=false) {
+    for (let j=0;j<2;j++) {
+      const sign=j===0?-1:1;
+      const step=Math.sin(phase+j*Math.PI);
+      const x=sign*.22;
+      const shoulder=new T.Vector3(sign*.34,.99,.08);
+      const elbow=new T.Vector3(sign*.31,.76,walking ? .07+step*.17 : .39);
+      const hand=new T.Vector3(x,walking?.56:.88+step*.027,walking ? .11+step*.30 : .79+step*.035);
+      connect(person.upperArms[j],shoulder,elbow);
+      connect(person.forearms[j],elbow,hand);
+      person.hands[j].position.copy(hand);
+      const hip=new T.Vector3(sign*.16,.57,-.04);
+      const knee=new T.Vector3(sign*.19,walking?.35:.47,walking ? .12-step*.21 : .35);
+      const foot=new T.Vector3(sign*.19,walking?.16+Math.max(0,step)*.08:.16,walking ? .02-step*.33 : .43);
+      connect(person.legs[j],hip,knee);
+      connect(person.shins[j],knee,foot);
+      person.shoes[j].position.copy(foot);
+    }
+  }
+  avatars.forEach(person=>pose(person,0));
   let angle=.18, elevation=.91, radius=18.6, start=null;
   const target=new T.Vector3(0,.44,0);
   function render() {
@@ -309,7 +366,8 @@ try {
   function nextTrip() {
     const trip = trips.shift();
     if (!trip) { walking=false; return; }
-    const {avatar,legs,room,home} = avatars[trip.from];
+    const person=avatars[trip.from];
+    const {avatar,room,home} = person;
     const other = avatars[trip.to];
     const origin = room.position.clone().add(home);
     const destination = other.room.position.clone().add(other.home).add(new T.Vector3(.7,0,.4));
@@ -336,13 +394,12 @@ try {
       avatar.position.copy(position.sub(room.position));
       avatar.position.y = .05 + Math.abs(stride)*.1;
       avatar.rotation.y = Math.atan2(ahead.x-avatar.position.x-room.position.x,ahead.z-avatar.position.z-room.position.z);
-      legs[0].rotation.x = stride*.48;
-      legs[1].rotation.x = -stride*.48;
+      pose(person,(now-startTime)*.018,true);
       if (progress === 1) {
         avatars[trip.from].inTransit=false;
         avatar.position.copy(home);
         avatar.rotation.y=0;
-        legs.forEach(leg=>{leg.rotation.x=0;});
+        pose(person,0);
       }
       render();
       if (progress < 1) requestAnimationFrame(walk);
@@ -401,13 +458,14 @@ try {
   new MutationObserver(updateLabels).observe(view,{attributes:true,attributeFilter:['data-selected','data-roles']});
   renderer.setAnimationLoop(now=>{
     if (reducedMotion.matches) return;
-    avatars.forEach(({avatar,arm,home,inTransit},i)=>{
+    avatars.forEach((person,i)=>{
+      const {avatar,home,inTransit}=person;
       if (inTransit) return;
       const phase=now*.002+i*1.32;
       const working=displayedRoles[i]?.status==='กำลังทำงาน';
       avatar.position.y=home.y+Math.sin(phase)*.023;
-      avatar.rotation.y=Math.sin(phase*.63)*.10;
-      arm.rotation.z=.84+Math.sin(phase*(working?3:1))*(working?.20:.055);
+      avatar.rotation.y=Math.sin(phase*.63)*.035;
+      pose(person,phase*(working?5:3));
     });
     render();
   });
