@@ -244,6 +244,8 @@ try {
   const group = new T.Group();
   scene.add(group);
   const hit = [];
+  const hoverTargets = [];
+  let hovered = -1;
   const roomEdges = [];
   const avatars = [];
   const captions = [];
@@ -302,15 +304,52 @@ try {
     part(room,'box',0x252e49,[.1,.4,.1],[-.47,.23,-.39]);
     const firstAvatarPart = room.children.length;
     const skin = i===1 ? 0xd89470 : 0xffbd91;
-    part(room,'capsule',hair[i],[1.13,.7,.93],[-.47,.87,-.12]);
+    const outfit = [
+      {body:0xf39133,sleeve:0xfff5e5,trim:0xffbe60},
+      {body:0xf7eef8,sleeve:0xf7eef8,trim:0xee3894},
+      {body:0x236e55,sleeve:0x236e55,trim:0x9ce3a7},
+      {body:0x8052c7,sleeve:0x8052c7,trim:0xcaacff},
+      {body:0x54bdd6,sleeve:0x54bdd6,trim:0xc5f6fe},
+      {body:0x6650ae,sleeve:0x6650ae,trim:0xb58cfb}
+    ][i];
+    part(room,'capsule',outfit.body,[1.13,.7,.93],[-.47,.87,-.12]);
+    part(room,'box',outfit.trim,[.28,.11,.048],[-.47,.79,.109]);
+    if (i===0) {
+      for (const x of [-.63,-.31]) {
+        part(room,'box',0xf39133,[.095,.30,.04],[x,1.01,.094]);
+        part(room,'ball',0xffe3a6,[.052,.052,.033],[x,.91,.131]);
+      }
+    } else {
+      for (const x of [-.55,-.39]) part(room,'box',outfit.trim,[.022,.18,.035],[x,1.03,.104]);
+      part(room,'ball',outfit.body,[.55,.29,.24],[-.47,1.12,-.23]);
+    }
     part(room,'ball',skin,[.89,.93,.84],[-.47,1.48,-.09]);
     part(room,'ball',hair[i],[.96,.52,.89],[-.47,1.79,-.13]);
     part(room,'ball',hair[i],[.38,.47,.43],[-.82,1.64,.07]).rotation.z=-.28;
     part(room,'ball',hair[i],[.32,.38,.36],[-.19,1.72,.13]);
     for (const x of [-.63,-.32]) part(room,'ball',0x251d33,[.10,.14,.07],[x,1.50,.30]);
-    part(room,'ball',0xa54258,[.15,.052,.04],[-.47,1.35,.32]);
+    const smileCurve=new T.QuadraticBezierCurve3(
+      new T.Vector3(-.585,1.375,.306),
+      new T.Vector3(-.47,1.265,.336),
+      new T.Vector3(-.355,1.375,.306)
+    );
+    const smile=new T.Mesh(new T.TubeGeometry(smileCurve,16,.017,8),new T.MeshStandardMaterial({color:0x9c3d57}));
+    smile.userData.room=i;
+    room.add(smile);
+    hit.push(smile);
+    for (const x of [-.73,-.21]) part(room,'ball',0xf49795,[.10,.044,.022],[x,1.41,.248]);
+    if (i===0 || i===4) {
+      for (const x of [-.63,-.32]) {
+        const frame=new T.Mesh(new T.TorusGeometry(.113,.018,8,24),new T.MeshStandardMaterial({color:i===0?0xe98623:0x36b9d4}));
+        frame.position.set(x,1.51,.328);
+        frame.userData.room=i;
+        room.add(frame);
+        hit.push(frame);
+      }
+      part(room,'box',i===0?0xe98623:0x36b9d4,[.095,.028,.025],[-.47,1.51,.339]);
+    }
     const limb = (color,width) => part(room,'capsule',color,[width,1,width],[0,0,0]);
-    const upperArms = [limb(hair[i],.39),limb(hair[i],.39)];
+    const upperArms = [limb(outfit.sleeve,.39),limb(outfit.sleeve,.39)];
     const forearms = [limb(skin,.28),limb(skin,.28)];
     const hands = [-.24,.24].map(x=>part(room,'ball',skin,[.15,.096,.16],[-.47+x,.88,.70]));
     if (i===0) part(room,'ball',hair[i],[.43,.40,.44],[-.50,2.01,-.2]);
@@ -341,7 +380,15 @@ try {
       mesh.position.sub(avatar.position);
       avatar.add(mesh);
     }
-    avatars.push({avatar,legs,shins,shoes,upperArms,forearms,hands,room,home:avatar.position.clone(),inTransit:false});
+    avatars.push({avatar,legs,shins,shoes,upperArms,forearms,hands,room,home:avatar.position.clone(),inTransit:false,stand:0});
+    const hoverTarget = new T.Mesh(
+      new T.BoxGeometry(1.02,1.64,.85),
+      new T.MeshBasicMaterial({visible:false})
+    );
+    hoverTarget.position.set(-.47,1.47,-.10);
+    hoverTarget.userData.room=i;
+    room.add(hoverTarget);
+    hoverTargets.push(hoverTarget);
     const caption = document.createElement('span');
     caption.className = 'office-avatar-caption';
     caption.setAttribute('aria-hidden','true');
@@ -363,19 +410,20 @@ try {
     mesh.quaternion.setFromUnitVectors(limbAxis,limbDirection.normalize());
   }
   function pose(person,phase,walking=false) {
+    const stand = walking ? 0 : person.stand;
     for (let j=0;j<2;j++) {
       const sign=j===0?-1:1;
       const step=Math.sin(phase+j*Math.PI);
       const x=sign*.22;
       const shoulder=new T.Vector3(sign*.34,.99,.08);
-      const elbow=new T.Vector3(sign*.31,.76,walking ? .07+step*.17 : .39);
-      const hand=new T.Vector3(x,walking?.56:.88+step*.027,walking ? .11+step*.30 : .79+step*.035);
+      const elbow=new T.Vector3(sign*.31,.76,walking ? .07+step*.17 : .39-stand*.25);
+      const hand=new T.Vector3(x,walking ? .56 : .88+step*.027-stand*.19, walking ? .11+step*.30 : .79+step*.035-stand*.60);
       connect(person.upperArms[j],shoulder,elbow);
       connect(person.forearms[j],elbow,hand);
       person.hands[j].position.copy(hand);
       const hip=new T.Vector3(sign*.16,.57,-.04);
-      const knee=new T.Vector3(sign*.19,walking?.35:.47,walking ? .12-step*.21 : .35);
-      const foot=new T.Vector3(sign*.19,walking?.16+Math.max(0,step)*.08:.16,walking ? .02-step*.33 : .43);
+      const knee=new T.Vector3(sign*.19,walking ? .35 : .47-stand*.17, walking ? .12-step*.21 : .35-stand*.29);
+      const foot=new T.Vector3(sign*.19,walking ? .16+Math.max(0,step)*.08 : .16-stand*.26, walking ? .02-step*.33 : .43-stand*.34);
       connect(person.legs[j],hip,knee);
       connect(person.shins[j],knee,foot);
       person.shoes[j].position.copy(foot);
@@ -471,8 +519,31 @@ try {
     start={x:e.clientX,y:e.clientY, angle,elevation};
     canvas.setPointerCapture(e.pointerId);
   });
+  function chooseHovered(index) {
+    hovered=index;
+    canvas.style.cursor=index<0?'grab':'pointer';
+    if (reducedMotion.matches) {
+      avatars.forEach((person,i)=>{
+        if (person.inTransit) return;
+        person.stand=Number(i===hovered);
+        person.avatar.position.y=person.home.y+person.stand*.26;
+        pose(person,0);
+      });
+      render();
+    }
+  }
+  canvas.addEventListener('pointerleave',()=>chooseHovered(-1));
   canvas.addEventListener('pointermove',e=>{
-    if(!start) return;
+    if (!start) {
+      if (e.pointerType==='touch') return;
+      const rect=canvas.getBoundingClientRect();
+      vector.set((e.clientX-rect.left)/rect.width*2-1,1-(e.clientY-rect.top)/rect.height*2);
+      ray.setFromCamera(vector,camera);
+      const target=ray.intersectObjects(hoverTargets)[0];
+      chooseHovered(target?.object.userData.room ?? -1);
+      return;
+    }
+    chooseHovered(-1);
     angle=start.angle-(e.clientX-start.x)*.009;
     elevation=Math.max(.30,Math.min(1.44,start.elevation+(e.clientY-start.y)*.007));
     render();
@@ -514,14 +585,16 @@ try {
       if (inTransit) return;
       const phase=now*.002+i*1.32;
       const working=displayedRoles[i]?.status==='กำลังทำงาน';
-      avatar.position.y=home.y+Math.sin(phase)*.023;
+      person.stand += (Number(i===hovered)-person.stand)*.19;
+      const rise=person.stand*.26 + Math.sin(person.stand*Math.PI)*.055;
+      avatar.position.y=home.y+rise+Math.sin(phase)*.012;
       avatar.rotation.y=Math.sin(phase*.63)*.035;
       pose(person,phase*(working?5:3));
     });
     render();
   });
   updateLabels();
-  notice.textContent='ลากเพื่อหมุน · คลิกห้องเพื่อเลือกผู้ช่วย';
+  notice.textContent='ชี้ที่ตัวละครให้ลุก · ลากเพื่อหมุน · คลิกห้องเพื่อเลือกผู้ช่วย';
   render();
 } catch {
   notice.textContent='ฉาก 3D เปิดไม่ได้บนอุปกรณ์นี้ · เลือกผู้ช่วยจากการ์ดด้านล่างได้';
