@@ -71,11 +71,10 @@ body{margin:0;background:#080d1b;color:#edf3ff}
 @keyframes office-indicator{50%{opacity:.45}}
 @media(prefers-reduced-motion:reduce){#agency-sim .card-activity::before{animation:none}}
 
-.office-skyline{position:relative;height:64px;overflow:hidden;background:radial-gradient(ellipse at 60% 0,#25365d,#0a1225);border-bottom:1px solid #364979}
-.office-skyline span{position:absolute;bottom:0;width:var(--width);height:var(--height);left:var(--left);border:1px solid #40527d;background:repeating-linear-gradient(0deg,transparent 0 4px,#111b31 4px 7px),repeating-linear-gradient(90deg,#202d49 0 4px,#7888a1 4px 6px);opacity:var(--opacity)}
-.office-skyline span:nth-child(3n){filter:hue-rotate(29deg)}
+.office-skyline{height:clamp(140px,20vw,280px);background:#101d3c url("./bangkok-night.webp") center 46% / cover no-repeat;border-bottom:1px solid #364979}
+#office-3d-stage .office-skyline{background-position:center;background-size:cover}
 #office-3d-stage{background:linear-gradient(#111d36,#080e1f)}
-#office-3d-stage .office-skyline{height:100%;position:absolute;inset:0;opacity:.56;border:0;pointer-events:none}
+#office-3d-stage .office-skyline{height:100%;position:absolute;inset:0;opacity:.68;border:0;pointer-events:none}
 #office-3d-stage canvas{position:relative}
 .office-avatar-caption{box-shadow:0 0 12px #5ca4f02f}
 </style>
@@ -83,7 +82,7 @@ body{margin:0;background:#080d1b;color:#edf3ff}
 <main>
 <section aria-label="ออฟฟิศ">
 <section id="office-3d" aria-label="ออฟฟิศสามมิติ">
-<div id="office-3d-stage" data-selected="1"><div class="office-skyline" aria-hidden="true"><span style="--width:4%;--height:24%;--left:0.0%;--opacity:0.50"></span><span style="--width:7%;--height:47%;--left:5.25%;--opacity:0.62"></span><span style="--width:10%;--height:70%;--left:10.5%;--opacity:0.74"></span><span style="--width:5%;--height:26%;--left:15.75%;--opacity:0.86"></span><span style="--width:8%;--height:49%;--left:21.0%;--opacity:0.50"></span><span style="--width:11%;--height:72%;--left:26.25%;--opacity:0.62"></span><span style="--width:6%;--height:28%;--left:31.5%;--opacity:0.74"></span><span style="--width:9%;--height:51%;--left:36.75%;--opacity:0.86"></span><span style="--width:4%;--height:74%;--left:42.0%;--opacity:0.50"></span><span style="--width:7%;--height:30%;--left:47.25%;--opacity:0.62"></span><span style="--width:10%;--height:53%;--left:52.5%;--opacity:0.74"></span><span style="--width:5%;--height:76%;--left:57.75%;--opacity:0.86"></span><span style="--width:8%;--height:32%;--left:63.0%;--opacity:0.50"></span><span style="--width:11%;--height:55%;--left:68.25%;--opacity:0.62"></span><span style="--width:6%;--height:78%;--left:73.5%;--opacity:0.74"></span><span style="--width:9%;--height:34%;--left:78.75%;--opacity:0.86"></span><span style="--width:4%;--height:57%;--left:84.0%;--opacity:0.50"></span><span style="--width:7%;--height:80%;--left:89.25%;--opacity:0.62"></span><span style="--width:10%;--height:36%;--left:94.5%;--opacity:0.74"></span></div></div>
+<div id="office-3d-stage" data-selected="1"><div class="office-skyline" aria-hidden="true"></div></div>
 <div class="office-3d-controls">
 <small id="office-3d-notice" role="status">กำลังโหลดฉาก 3D</small>
 <button id="office-3d-in" type="button" aria-label="ซูมเข้า">+</button>
