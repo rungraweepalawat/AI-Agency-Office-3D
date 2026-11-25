@@ -208,12 +208,19 @@ try {
   const captions = [];
   const headPosition = new T.Vector3();
   const sizes = {width:0,height:0};
-  const floor = new T.Mesh(new T.BoxGeometry(12.2,.24,11.6),new T.MeshStandardMaterial({color:0x151d36}));
-  floor.position.y=-.235;
+  const bounds = {left:-6.08,right:6.08,back:-5.52,front:5.75};
+  const floorY=.091;
+  const {left,right,back,front}=bounds;
+  const width=right-left;
+  const depth=front-back;
+  const centerZ=(front+back)/2;
+  const floor = new T.Mesh(new T.BoxGeometry(width,.09,depth),new T.MeshStandardMaterial({color:0x625349,roughness:.83}));
+  floor.position.set(0,floorY-.045,centerZ);
   group.add(floor);
-  const walkway = new T.Mesh(new T.BoxGeometry(2.1,.03,11.15),new T.MeshStandardMaterial({color:0x2b3d66}));
-  walkway.position.y=-.10;
-  group.add(walkway);
+  const site = new T.Mesh(new T.PlaneGeometry(width+4,depth+3),new T.MeshStandardMaterial({color:0x202638,roughness:1}));
+  site.rotation.x=-Math.PI/2;
+  site.position.set(0,floorY-.095,centerZ);
+  group.add(site);
   const geometry = {
     box:new T.BoxGeometry(1,1,1),
     ball:new T.SphereGeometry(.5,24,16),
@@ -233,19 +240,8 @@ try {
     room.userData.room = i;
     room.position.set(i%2 ? 3.35 : -3.35, 0, (Math.floor(i/2)-1)*3.55);
     group.add(room);
-    part(room,'box',0x273350,[4.25,.19,2.62],[0,0,0]);
-    const strip=part(room,'box',color,[4.25,.04,.055],[0,.075,1.292]);
-    strip.material.emissive.setHex(color);
-    strip.material.emissiveIntensity=.65;
-    for (const x of [-2.06,0,2.06]) part(room,'box',0x526887,[.065,1.55,.12],[x,.85,-1.27]);
-    part(room,'box',0x526887,[4.17,.07,.12],[0,1.60,-1.27]);
-    part(room,'box',0x303c59,[4.17,.22,.12],[0,.20,-1.27]);
-    const windowpane=part(room,'box',0x356391,[4.13,1.29,.028],[0,.89,-1.28]);
-    windowpane.material.transparent=true;
-    windowpane.material.opacity=.22;
-    windowpane.material.depthWrite=false;
-    const side = i % 2 ? 2.06 : -2.06;
-    part(room,'box',color,[.12,.84,2.55],[side,.48,0]);
+    const rug = part(room,'box',color,[3.05,.008,1.83],[0,floorY+.004,.08]);
+    rug.material.color.lerp(new T.Color(0x463949),.57);
     part(room,'box',0x42506e,[2.2,.13,.77],[.54,.71,.55]);
     part(room,'box',0x293858,[.12,.59,.55],[-.43,.38,.55]);
     part(room,'box',0x293858,[.12,.59,.55],[1.51,.38,.55]);
@@ -373,10 +369,42 @@ try {
     caption.append(name,status);
     view.append(caption);
     captions.push({caption,name,status});
-    const edge = new T.LineSegments(new T.EdgesGeometry(new T.BoxGeometry(4.3,.21,2.67)),new T.LineBasicMaterial({color:0xffffff}));
+    const edge = new T.LineSegments(new T.EdgesGeometry(new T.BoxGeometry(3.08,.008,1.85)),new T.LineBasicMaterial({color:0xffffff}));
+    edge.position.set(0,floorY+.013,.08);
     room.add(edge);
     roomEdges.push(edge);
   });
+  const shell = new T.Group();
+  group.add(shell);
+  const wallMaterial = new T.MeshStandardMaterial({color:0x4c4b62,roughness:.72});
+  const revealMaterial = new T.MeshStandardMaterial({color:0x8b899d,roughness:.68});
+  function shellBox(size, xyz, material=wallMaterial) {
+    const mesh=new T.Mesh(new T.BoxGeometry(...size),material);
+    mesh.position.set(...xyz);
+    shell.add(mesh);
+  }
+  const tall=2.38;
+  const low=.44;
+  const thickness=.16;
+  // Reference cutaway: tall left and back; low front and right.
+  shellBox([thickness,tall,depth],[left+thickness/2,floorY+tall/2,centerZ]);
+  shellBox([thickness,low,depth],[right-thickness/2,floorY+low/2,centerZ]);
+  shellBox([width,low,thickness],[0,floorY+low/2,front-thickness/2]);
+  shellBox([width,.04,.19],[0,floorY+low+.02,front-thickness/2],revealMaterial);
+  shellBox([.19,.04,depth],[right-thickness/2,floorY+low+.02,centerZ],revealMaterial);
+  const rearZ=back+thickness/2;
+  shellBox([width,.55,thickness],[0,floorY+.275,rearZ]);
+  shellBox([width,.47,thickness],[0,floorY+tall-.235,rearZ]);
+  for (const [from,to] of [[left,-4.6],[-2.75,-1.15],[1.15,2.75],[4.60,right]]) {
+    shellBox([to-from,1.36,thickness],[(from+to)/2,floorY+1.23,rearZ]);
+  }
+  for (const [from,to] of [[-4.60,-2.75],[-1.15,1.15],[2.75,4.60]]) {
+    const mid=(from+to)/2;
+    for (const x of [from,mid,to]) {
+      shellBox([.045,1.36,.20],[x,floorY+1.23,rearZ],revealMaterial);
+    }
+    shellBox([to-from,.055,.23],[mid,floorY+.55,rearZ],revealMaterial);
+  }
   const limbAxis = new T.Vector3(0,1,0);
   const limbDirection = new T.Vector3();
   function connect(mesh,a,b) {
@@ -406,7 +434,7 @@ try {
     }
   }
   avatars.forEach(person=>pose(person,0));
-  let angle=.18, elevation=.91, radius=18.6, start=null;
+  let angle=.55, elevation=.82, radius=19.4, start=null;
   const target=new T.Vector3(0,.44,0);
   function render() {
     const width = view.clientWidth;
@@ -422,7 +450,7 @@ try {
     camera.updateProjectionMatrix();
     camera.position.set(target.x+Math.sin(angle)*Math.cos(elevation)*radius,target.y+Math.sin(elevation)*radius,target.z+Math.cos(angle)*Math.cos(elevation)*radius);
     camera.lookAt(target);
-    roomEdges.forEach((edge,i)=>edge.material.color.set(i===Number(view.dataset.selected) ? 0xffd148 : 0xffffff));
+    roomEdges.forEach((edge,i)=>edge.material.color.set(i===Number(view.dataset.selected) ? 0xffd148 : 0x65596a));
     renderer.render(scene,camera);
     avatars.forEach(({avatar},i)=>{
       const {caption}=captions[i];
@@ -541,7 +569,7 @@ try {
   canvas.addEventListener('wheel',e=>{e.preventDefault();zoom(Math.sign(e.deltaY)*.75);},{passive:false});
   document.getElementById('office-3d-in').onclick=()=>zoom(-1);
   document.getElementById('office-3d-out').onclick=()=>zoom(1);
-  document.getElementById('office-3d-reset').onclick=()=>{angle=.18;elevation=.91;radius=18.6;render();};
+  document.getElementById('office-3d-reset').onclick=()=>{angle=.55;elevation=.82;radius=19.4;render();};
   new ResizeObserver(render).observe(view);
   let displayedRoles = [];
   function updateLabels() {
