@@ -6,13 +6,22 @@
 
 ## เปิดออฟฟิศที่รันงานผ่าน Codex
 
-ใช้เครื่องที่มีไฟล์โปรเจกต์ Python 3.11 ขึ้นไป และ Codex CLI ที่ล็อกอินและรันคำสั่งได้ เปิด Terminal ในโฟลเดอร์ `agency-team` แล้วรัน
+ใช้เครื่องที่มีไฟล์โปรเจกต์ Python 3.11 ขึ้นไป และ Codex CLI ที่ล็อกอินและรันคำสั่งได้ เปิด Terminal ในโฟลเดอร์หลักของโปรเจกต์ แล้วรัน
 
 ```sh
 python3 office/server.py
 ```
 
-บน Windows ใช้ `py -3 office/server.py` ได้ถ้าติดตั้ง Python Launcher ไว้ เปิด [หน้าออฟฟิศในเครื่อง](http://127.0.0.1:8765) ในเบราว์เซอร์บนเครื่องเดียวกับที่รันคำสั่ง ฉาก 3D โหลด Three.js จาก CDN
+บน Windows ใช้ `py -3 office/server.py` จากโฟลเดอร์หลักของโปรเจกต์ หากอยู่ในโฟลเดอร์ `office` แล้ว ให้ใช้ `py -3 .\server.py`
+
+ถ้าใช้ Codex แบบแตกไฟล์ ZIP หรือ TAR ให้ชี้ไปที่ไฟล์ `codex.exe` โดยตรงใน PowerShell หน้าต่างเดียวกับที่จะเปิดออฟฟิศ ตัวอย่างนี้ใช้ได้เมื่อแตกไฟล์ Codex ไว้ที่ Downloads ตามชื่อโฟลเดอร์ด้านล่าง
+
+```powershell
+$env:AGENCY_CODEX_EXE = "$env:USERPROFILE\Downloads\codex-package-x86_64-pc-windows-msvc\bin\codex.exe"
+py -3 office/server.py
+```
+
+เปิด [หน้าออฟฟิศในเครื่อง](http://127.0.0.1:8765) ในเบราว์เซอร์บนเครื่องเดียวกับที่รันคำสั่ง ฉาก 3D โหลด Three.js จาก CDN
 
 ## สั่งงานในแชททีมรวม
 

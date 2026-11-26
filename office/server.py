@@ -1,7 +1,9 @@
 """Local office UI and read-only Codex job runner."""
 import json
 import os
+import shutil
 import subprocess
+import sys
 import tomllib
 import uuid
 from concurrent.futures import ThreadPoolExecutor
@@ -12,7 +14,7 @@ from threading import Lock
 OFFICE = Path(__file__).resolve().parent
 PROJECT = OFFICE.parent
 ROLES = {
-    path.stem: tomllib.loads(path.read_text())
+    path.stem: tomllib.loads(path.read_text(encoding="utf-8"))
     for path in sorted((PROJECT / ".codex/agents").glob("*.toml"))
 }
 STATE = Path(os.environ.get("AGENCY_OFFICE_STATE", OFFICE / "data/jobs.json"))
@@ -35,20 +37,25 @@ def update(job, **fields):
 
 
 def codex_text(prompt):
+    executable = os.environ.get("AGENCY_CODEX_EXE") or shutil.which("codex")
+    if not executable or not Path(executable).is_file():
+        raise RuntimeError("หาไฟล์ Codex CLI ไม่เจอ ตั้ง AGENCY_CODEX_EXE ให้ชี้ไปที่ codex.exe แล้วเปิดออฟฟิศใหม่")
     with subprocess.Popen(
-        ["codex", "--ask-for-approval", "never", "exec", "--ephemeral", "--skip-git-repo-check",
+        [executable, "--ask-for-approval", "never", "exec", "--ephemeral", "--skip-git-repo-check",
          "--sandbox", "read-only", "--json", "-"],
         cwd=PROJECT, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-        stderr=subprocess.DEVNULL, encoding="utf-8",
+        stderr=subprocess.PIPE, encoding="utf-8", errors="replace",
     ) as process:
         try:
-            output, _ = process.communicate(prompt, timeout=180)
+            output, diagnostics = process.communicate(prompt, timeout=180)
         except subprocess.TimeoutExpired as error:
             process.kill()
             process.communicate()
             raise RuntimeError("Codex ใช้เวลานานเกิน 3 นาที ลองส่งงานอีกครั้ง") from error
         if process.returncode:
-            raise RuntimeError("Codex ทำงานไม่สำเร็จ ตรวจการเข้าสู่ระบบและการเชื่อมต่อ แล้วลองส่งใหม่")
+            if diagnostics.strip():
+                print(diagnostics.strip(), file=sys.stderr, flush=True)
+            raise RuntimeError("Codex ทำงานไม่สำเร็จ ดูรายละเอียดในหน้าต่างที่เปิดออฟฟิศ")
     messages = []
     for line in output.splitlines():
         event = json.loads(line)
