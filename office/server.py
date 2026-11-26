@@ -4,6 +4,7 @@ import os
 import shutil
 import subprocess
 import sys
+import tempfile
 import tomllib
 import uuid
 from concurrent.futures import ThreadPoolExecutor
@@ -36,13 +37,16 @@ def update(job, **fields):
         save()
 
 
-def codex_text(prompt):
+def codex_text(prompt, schema_path=None):
     executable = os.environ.get("AGENCY_CODEX_EXE") or shutil.which("codex")
     if not executable or not Path(executable).is_file():
         raise RuntimeError("หาไฟล์ Codex CLI ไม่เจอ ตั้ง AGENCY_CODEX_EXE ให้ชี้ไปที่ codex.exe แล้วเปิดออฟฟิศใหม่")
+    command = [executable, "--ask-for-approval", "never", "exec", "--ephemeral",
+               "--skip-git-repo-check", "--sandbox", "read-only", "--json"]
+    if schema_path is not None:
+        command.extend(["--output-schema", str(schema_path)])
     with subprocess.Popen(
-        [executable, "--ask-for-approval", "never", "exec", "--ephemeral", "--skip-git-repo-check",
-         "--sandbox", "read-only", "--json", "-"],
+        [*command, "-"],
         cwd=PROJECT, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
         stderr=subprocess.PIPE, encoding="utf-8", errors="replace",
     ) as process:
@@ -103,34 +107,64 @@ def run(job, context=None):
 
 
 def plan_team(brief):
-    roster = "\n".join(
-        f"{role}: {config['description']} — {config['developer_instructions'][:1000]}"
-        for role, config in ROLES.items()
-    )
-    response = codex_text(
-        "คุณคือผู้ประสานงานเอเจนซี่ วางแผนงานร่างข้อความเท่านั้น อย่าใช้เครื่องมือหรือแก้ไฟล์ "
-        "เลือกเฉพาะตำแหน่งที่จำเป็นจากรายชื่อ ให้มีตำแหน่งละไม่เกินหนึ่งงาน "
-        "ระบุชิ้นงานที่ต้องรอจากตำแหน่งก่อนหน้า ถ้าไม่มีให้ใช้ []. "
-        'ตอบ JSON เท่านั้นในรูป {"steps":[{"role":"content","task":"ร่างบรีฟ","needs":[]}]}.\n'
+    roster = "\n".join(f"{role}: {config['description']}" for role, config in ROLES.items())
+    role_schema = {"type": "string", "enum": list(ROLES)}
+    schema = {
+        "type": "object",
+        "properties": {
+            "steps": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "role": role_schema,
+                        "task": {"type": "string"},
+                        "needs": {"type": "array", "items": role_schema},
+                    },
+                    "required": ["role", "task", "needs"],
+                    "additionalProperties": False,
+                },
+            },
+        },
+        "required": ["steps"],
+        "additionalProperties": False,
+    }
+    prompt = (
+        "สร้างแผนมอบหมายงานให้ระบบนำไปจัดคิว โดยให้ผลลัพธ์ตาม JSON Schema เท่านั้น "
+        "วางแผนงานร่างข้อความจากโจทย์ อย่าเรียกเอเจนต์ ใช้เครื่องมือ หรือแก้ไฟล์ "
+        "เลือกอย่างน้อยหนึ่งตำแหน่งและใช้แต่ละตำแหน่งได้เพียงครั้งเดียว "
+        "ใช้รหัสตำแหน่งในรายชื่อเป็นค่า role และ needs "
+        "เรียงลำดับให้ทุกตำแหน่งใน needs อยู่ในขั้นก่อนหน้า ถ้าไม่มีงานต้นทางให้ใช้ []. "
+        'ตัวอย่างการส่งต่อจากคอนเทนต์ให้กราฟิก {"steps":['
+        '{"role":"content","task":"คิดคอนเซปต์","needs":[]},'
+        '{"role":"graphics","task":"เขียนบรีฟภาพจากคอนเซปต์","needs":["content"]}]}.\n'
         f"รายชื่อ:\n{roster}\nโจทย์:\n{brief}"
-    ).strip()
-    try:
-        if response.startswith("```") and response.endswith("```"):
-            response = response.split("\n", 1)[1].rsplit("```", 1)[0]
-        steps = json.loads(response)["steps"]
-        if not isinstance(steps, list) or not 1 <= len(steps) <= len(ROLES):
-            raise ValueError
-        assigned = set()
-        for step in steps:
-            role, task, needs = step["role"], step["task"], step["needs"]
-            if (role not in ROLES or role in assigned or not isinstance(task, str)
-                    or not task.strip() or len(task) > 1200 or not isinstance(needs, list)
-                    or not set(needs) <= assigned or len(needs) != len(set(needs))):
-                raise ValueError
-            assigned.add(role)
-        return steps
-    except (KeyError, IndexError, TypeError, ValueError) as error:
-        raise RuntimeError("แผนที่ Codex ส่งกลับมาใช้จัดคิวไม่ได้ ลองส่งโจทย์อีกครั้ง") from error
+    )
+    with tempfile.TemporaryDirectory(prefix="agency-office-plan-") as directory:
+        schema_path = Path(directory) / "plan.json"
+        schema_path.write_text(json.dumps(schema), encoding="utf-8")
+        for reminder in ("", "\nแผนก่อนหน้าจัดคิวไม่ได้ ตรวจรหัสตำแหน่ง ลำดับ และงานต้นทางก่อนตอบ"):
+            response = codex_text(prompt + reminder, schema_path)
+            try:
+                return validate_team_plan(response)
+            except (KeyError, TypeError, ValueError):
+                continue
+    raise RuntimeError("Codex ส่งแผนที่จัดคิวไม่ได้หลังลองแก้แผนแล้ว")
+
+
+def validate_team_plan(response):
+    steps = json.loads(response)["steps"]
+    if not isinstance(steps, list) or not 1 <= len(steps) <= len(ROLES):
+        raise ValueError("expected one step per participating role")
+    assigned = set()
+    for step in steps:
+        role, task, needs = step["role"], step["task"], step["needs"]
+        if (role not in ROLES or role in assigned or not isinstance(task, str)
+                or not task.strip() or len(task) > 1200 or not isinstance(needs, list)
+                or not set(needs) <= assigned or len(needs) != len(set(needs))):
+            raise ValueError("invalid task or dependency")
+        assigned.add(role)
+    return steps
 
 
 def run_team(job):
@@ -169,6 +203,10 @@ def run_team(job):
 
 
 class OfficeHandler(BaseHTTPRequestHandler):
+    def log_request(self, code="-", size="-"):
+        if not (self.command == "GET" and self.path == "/api/jobs" and code == 200):
+            super().log_request(code, size)
+
     def respond(self, status, data, mime="application/json; charset=utf-8"):
         if not isinstance(data, bytes):
             data = json.dumps(data, ensure_ascii=False).encode()
