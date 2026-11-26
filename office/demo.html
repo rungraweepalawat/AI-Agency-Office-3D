@@ -64,7 +64,7 @@ body{margin:0;background:#080d1b;color:#edf3ff}
 @keyframes office-indicator{50%{opacity:.45}}
 @media(prefers-reduced-motion:reduce){#agency-sim .card-activity::before{animation:none}}
 
-.office-skyline{height:clamp(140px,20vw,280px);background:#101d3c url("./bangkok-night.webp") center 46% / cover no-repeat;border-bottom:1px solid #364979}
+.office-skyline{height:clamp(140px,20vw,280px);background:#101d3c url("./bangkok-day.webp") center 46% / cover no-repeat;border-bottom:1px solid #364979}
 #office-3d-stage .office-skyline{background-position:center;background-size:cover}
 #office-3d-stage{background:linear-gradient(#111d36,#080e1f)}
 #office-3d-stage .office-skyline{height:100%;position:absolute;inset:0;opacity:.68;border:0;pointer-events:none}
@@ -193,11 +193,11 @@ try {
   view.append(renderer.domElement);
   view.querySelector('.office-skyline')?.remove();
   const scene = new T.Scene();
-  scene.background = new T.Color(0x071126);
-  scene.fog = new T.FogExp2(0x101d36,.023);
-  scene.add(new T.HemisphereLight(0xffffff, 0x8a8dab, 2.4));
-  const lamp = new T.DirectionalLight(0xffffff, 2);
-  lamp.position.set(3, 9, 7);
+  scene.background = new T.Color(0x8bc6ef);
+  scene.fog = new T.FogExp2(0xcbe4f4,.018);
+  scene.add(new T.HemisphereLight(0xe6f6ff, 0x9c9eaf, 1.85));
+  const lamp = new T.DirectionalLight(0xfff2df, 2.55);
+  lamp.position.set(-7, 12, 5);
   scene.add(lamp);
   const camera = new T.PerspectiveCamera(38, 1, .1, 110);
   const colors = [0xa1d52c,0xf84599,0x21ceb3,0x8950ed,0x23b8dc,0x3672ee];
@@ -218,10 +218,10 @@ try {
   const width=right-left;
   const depth=front-back;
   const centerZ=(front+back)/2;
-  const floor = new T.Mesh(new T.BoxGeometry(width,.09,depth),new T.MeshStandardMaterial({color:0x625349,roughness:.83}));
+  const floor = new T.Mesh(new T.BoxGeometry(width,.09,depth),new T.MeshStandardMaterial({color:0x364557,roughness:.48,metalness:.22}));
   floor.position.set(0,floorY-.045,centerZ);
   group.add(floor);
-  const site = new T.Mesh(new T.PlaneGeometry(92,88),new T.MeshStandardMaterial({color:0x202638,roughness:1}));
+  const site = new T.Mesh(new T.PlaneGeometry(92,88),new T.MeshStandardMaterial({color:0x758593,roughness:1}));
   site.rotation.x=-Math.PI/2;
   site.position.set(0,floorY-.095,centerZ);
   group.add(site);
@@ -254,6 +254,19 @@ try {
     const display=part(room,'box',color,[.59,.29,.012],[-.47,1.10,.990]);
     display.material.emissive.setHex(color);
     display.material.emissiveIntensity=.27;
+    const interfacePane=part(room,'box',0x438ada,[.55,.38,.014],[.38,1.12,.88]);
+    interfacePane.rotation.y=-.23;
+    interfacePane.material.transparent=true;
+    interfacePane.material.opacity=.45;
+    interfacePane.material.depthWrite=false;
+    for(let line=0;line<3;line++){
+      const scan=part(room,'box',0x79e7ff,[.32-line*.05,.016,.016],[.35,1.19-line*.067,.89]);
+      scan.rotation.y=-.23;
+      scan.material.emissive.setHex(0x279fd7);
+      scan.material.emissiveIntensity=.65;
+    }
+    const accent=part(room,'box',0x8a302f,[.28,.08,.55],[1.39,.778,.55]);
+    accent.material.metalness=.48;
     part(room,'box',0xb7c6df,[.09,.18,.085],[-.47,.865,1.07]);
     part(room,'box',0xcfd8ea,[.30,.022,.18],[-.47,.805,1.04]);
     const deskProps = [
@@ -384,8 +397,8 @@ try {
   });
   const shell = new T.Group();
   group.add(shell);
-  const wallMaterial = new T.MeshStandardMaterial({color:0x4c4b62,roughness:.72});
-  const revealMaterial = new T.MeshStandardMaterial({color:0x8b899d,roughness:.68});
+  const wallMaterial = new T.MeshStandardMaterial({color:0x3e5267,roughness:.53,metalness:.15});
+  const revealMaterial = new T.MeshStandardMaterial({color:0x9dbac8,roughness:.43});
   function shellBox(size, xyz, material=wallMaterial) {
     const mesh=new T.Mesh(new T.BoxGeometry(...size),material);
     mesh.position.set(...xyz);
@@ -431,7 +444,7 @@ try {
       for(let column=0;column<Math.max(2,Math.floor(w/.55));column++) {
         const count=Math.max(2,Math.floor(w/.55));
         if ((Math.round(y*10)+column+Math.round(x))%4===0) continue;
-        panes.push([x-w/2+(column+.5)*w/count,y,z+d/2+.014,(column+Math.round(y))%3===0?0xffca82:0x8cc9ff]);
+        panes.push([x-w/2+(column+.5)*w/count,y,z+d/2+.014,(column+Math.round(y))%3===0?0xc8dee1:0x83a7c0]);
       }
     }
   }
@@ -447,7 +460,7 @@ try {
   for(let i=0;i<14;i++) {
     const x=(i-6.5)*3.45;
     if(i===9) continue;
-    building(x,-21-(i%3)*3.6,1.9+(i%4)*.45,2.3,4.3+(i*7%13)*.6,[0x2a3957,0x344769,0x354258][i%3]);
+    building(x,-21-(i%3)*3.6,1.9+(i%4)*.45,2.3,4.3+(i*7%13)*.6,[0x55708a,0x647f99,0x627b90][i%3]);
   }
   // Stepped silhouette inspired by the pixel cuts of MahaNakhon.
   building(8.62,-24,2.5,2.6,8.4,0x3e5378);
@@ -481,12 +494,28 @@ try {
   }
   for(let x=-16;x<=16;x+=3.2) plant(x,-10.7,false);
   // A shared high table sits in the front zone, clear of the center aisle.
-  cityBox([2.1,.075,.86],[3.65,.80,4.72],0xd5be9d);
+  cityBox([2.1,.075,.86],[3.65,.80,4.72],0xaeccd7);
   for(const x of [2.83,4.47]) cityBox([.09,.68,.58],[x,.43,4.72],0x252c42);
   for(const x of [3.03,4.28]) {
     cityBox([.47,.09,.38],[x,.47,5.35],0x8793ad);
     cityBox([.095,.36,.10],[x,.27,5.35],0x303951);
   }
+  // Cyan workbench displays with dark steel and red-metal accents.
+  cityBox([2.05,.20,.69],[-3.65,.19,4.82],0x622c32);
+  cityBox([1.85,.17,.55],[-3.65,.365,4.82],0x273d51);
+  cityBox([1.48,.025,.46],[-3.65,.47,4.82],0x63bad7);
+  const cyanGlow=new T.MeshBasicMaterial({color:0x76e8ff});
+  for (const r of [.24,.38,.53]) {
+    const ring=new T.Mesh(new T.TorusGeometry(r,.012,8,36),cyanGlow);
+    ring.rotation.x=-Math.PI/2;
+    ring.position.set(-3.65,.78+(r-.24)*.52,4.82);
+    city.add(ring);
+  }
+  const model=new T.Mesh(new T.OctahedronGeometry(.22),new T.MeshStandardMaterial({
+    color:0x53bada,emissive:0x107baa,emissiveIntensity:.55,wireframe:true
+  }));
+  model.position.set(-3.65,.925,4.82);
+  city.add(model);
   const limbAxis = new T.Vector3(0,1,0);
   const limbDirection = new T.Vector3();
   function connect(mesh,a,b) {
@@ -669,6 +698,7 @@ try {
   renderer.setAnimationLoop(now=>{
     if (reducedMotion.matches) return;
     activityStart ??= now;
+    model.rotation.y=now*.00063;
     avatars.forEach((person,i)=>{
       const {avatar,home,inTransit}=person;
       if (inTransit) return;

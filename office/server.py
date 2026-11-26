@@ -100,6 +100,8 @@ class OfficeHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         if self.path == "/":
             self.respond(200, (OFFICE / "index.html").read_bytes(), "text/html; charset=utf-8")
+        elif self.path == "/bangkok-day.webp":
+            self.respond(200, (OFFICE / "bangkok-day.webp").read_bytes(), "image/webp")
         elif self.path == "/bangkok-night.webp":
             self.respond(200, (OFFICE / "bangkok-night.webp").read_bytes(), "image/webp")
         elif self.path == "/api/jobs":
