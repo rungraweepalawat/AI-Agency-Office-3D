@@ -166,6 +166,9 @@ export function createSoftwareRenderer(Three) {
       face.opacity = opacity;
       // The outdoor plane spans the view and sits below every modeled object.
       if (mesh.geometry.type === 'PlaneGeometry' && mesh.geometry.parameters.width > 30) face.depth = 1000;
+      const dimensions = mesh.geometry.parameters;
+      if (mesh.geometry.type === 'BoxGeometry' && dimensions.width > 10 &&
+          dimensions.depth > 8 && dimensions.height <= .12) face.depth = 900;
       faces.push(face);
     }
   }
