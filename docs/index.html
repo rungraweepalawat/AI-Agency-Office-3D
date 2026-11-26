@@ -48,19 +48,22 @@
 #agency-sim .room{position:relative}
 #agency-sim .room .card-activity{position:absolute;inset:7px auto auto 7px;max-width:calc(100% - 14px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:#172032ec;color:#fff;border-radius:6px;padding:4px 7px;font-size:12px}
 
-html{background:#080d1b;color-scheme:dark}
-body{margin:0;background:#080d1b;color:#edf3ff}
-#agency-sim{--paper:#080d1b;--tile:#141e32;--ink:#edf3ff;--line:#394664;background:#080d1b;color:#edf3ff}
-#agency-sim article,#agency-sim button,#agency-sim input{color:#edf3ff}
-#agency-sim .room{background:#151d32}
-#office-3d{background:#0d1528;border-color:#34486e;color:#edf3ff}
-#office-3d-stage{background:radial-gradient(ellipse at 50% 42%,#1e2b4d,#0b1021)}
-.office-3d-controls{background:#111b31}
-.office-3d-controls small{color:#d1dfff}
-.office-3d-controls button{background:#202e4b;color:#edf3ff;border-color:#405278}
-.office-avatar-caption{background:#141f38f5;color:#f1f6ff;border-color:#425987}
-.office-avatar-caption small{color:#bcdbff}
-#agency-sim .card-activity::before{content:"";display:inline-block;width:6px;height:6px;margin-right:6px;border-radius:50%;background:#81bfff;animation:office-indicator 2s ease-in-out infinite}
+html{background:#f5f0e7;color-scheme:light}
+body{margin:0;background:#f5f0e7;color:#342d26}
+#agency-sim{color-scheme:light;--paper:#f5f0e7;--tile:#fffcf7;--ink:#342d26;--line:#dfd3c1;background:var(--paper);color:var(--ink)}
+#agency-sim .room{background:#fffdf9;color:#342d26;border-color:#dfd3c1}
+#agency-sim .room[aria-pressed=true]{outline-color:#9a773d}
+#agency-sim .room[data-state="กำลังทำงาน"] small{color:#62488a}
+#agency-sim .room[data-state="รอทำงาน"] small{color:#75501e}
+#agency-sim .room[data-state="เสร็จแล้ว"] small{color:#2d664e}
+#agency-sim .room .card-activity{background:#fffcf5f5;color:#432e20}
+#office-3d{background:#fbf6ea;border-color:#d5c1a2;color:#342d26}
+.office-3d-controls{background:#fdf9ef}
+.office-3d-controls small{color:#635649}
+.office-3d-controls button{background:#f1e3c9;color:#412e18;border-color:#c9ac7f}
+.office-avatar-caption{background:#fffaf0f5;color:#33271c;border-color:#c8a978}
+.office-avatar-caption small{color:#675442}
+#agency-sim .card-activity::before{content:"";display:inline-block;width:6px;height:6px;margin-right:6px;border-radius:50%;background:#a47a43;animation:office-indicator 2s ease-in-out infinite}
 @keyframes office-indicator{50%{opacity:.45}}
 @media(prefers-reduced-motion:reduce){#agency-sim .card-activity::before{animation:none}}
 
@@ -70,7 +73,7 @@ body{margin:0;background:#080d1b;color:#edf3ff}
 #office-3d-stage[hidden],.office-3d-controls button[hidden]{display:none}
 #office-3d-stage canvas{position:relative}
 .office-column{min-width:0}
-.office-avatar-caption{box-shadow:0 0 12px #5ca4f02f}
+.office-avatar-caption{box-shadow:0 3px 12px #3b241f26}
 </style>
 <header><h2>AI Agency</h2><small>โหมดจำลอง · สถานะและข้อความเป็นตัวอย่าง</small></header>
 <div class="layout">
@@ -223,7 +226,7 @@ try {
   const width=right-left;
   const depth=front-back;
   const centerZ=(front+back)/2;
-  const floor = new T.Mesh(new T.BoxGeometry(width,.09,depth),new T.MeshStandardMaterial({color:0x364557,roughness:.48,metalness:.22}));
+  const floor = new T.Mesh(new T.BoxGeometry(width,.09,depth),new T.MeshStandardMaterial({color:0xf0e6d3,roughness:.42,metalness:.05}));
   floor.position.set(0,floorY-.045,centerZ);
   group.add(floor);
   const site = new T.Mesh(new T.PlaneGeometry(92,88),new T.MeshStandardMaterial({color:0x758593,roughness:1}));
@@ -250,11 +253,11 @@ try {
     room.position.set(i%2 ? 4.12 : -4.12, 0, (Math.floor(i/2)-1)*3.67);
     group.add(room);
     const rug = part(room,'box',color,[3.5,.008,2.05],[0,floorY+.004,.08]);
-    rug.material.color.lerp(new T.Color(0x463949),.57);
-    part(room,'box',0xd9dfe8,[2.2,.08,.78],[.54,.75,.55]);
-    part(room,'box',0x293858,[.12,.59,.55],[-.43,.38,.55]);
-    part(room,'box',0x293858,[.12,.59,.55],[1.51,.38,.55]);
-    part(room,'box',0xcfd8ea,[.71,.43,.055],[-.47,1.075,1.035]);
+    rug.material.color.lerp(new T.Color(0xe6d5bb),.87);
+    part(room,'box',0xfffaf1,[2.2,.08,.78],[.54,.75,.55]);
+    part(room,'box',0xc1a071,[.12,.59,.55],[-.43,.38,.55]);
+    part(room,'box',0xc1a071,[.12,.59,.55],[1.51,.38,.55]);
+    part(room,'box',0xe7ddd1,[.71,.43,.055],[-.47,1.075,1.035]);
     part(room,'box',0x11162d,[.66,.36,.016],[-.47,1.10,1.001]);
     const display=part(room,'box',color,[.59,.29,.012],[-.47,1.10,.990]);
     display.material.emissive.setHex(color);
@@ -270,7 +273,7 @@ try {
       scan.material.emissive.setHex(0x279fd7);
       scan.material.emissiveIntensity=.65;
     }
-    const accent=part(room,'box',0x8a302f,[.28,.08,.55],[1.39,.778,.55]);
+    const accent=part(room,'box',0xc3a172,[.28,.08,.55],[1.39,.778,.55]);
     accent.material.metalness=.48;
     part(room,'box',0xb7c6df,[.09,.18,.085],[-.47,.865,1.07]);
     part(room,'box',0xcfd8ea,[.30,.022,.18],[-.47,.805,1.04]);
@@ -281,16 +284,16 @@ try {
     ];
     const [propColor,propWidth,propHeight,propDepth] = deskProps[i];
     part(room,'box',propColor,[propWidth,propHeight,propDepth],[.22,.81,.6]);
-    part(room,'box',0xe4e9ef,[1.16,.07,.54],[-.47,.755,.88]);
+    part(room,'box',0xfffcf3,[1.16,.07,.54],[-.47,.755,.88]);
     const deskLight=part(room,'box',color,[1.14,.016,.025],[-.47,.715,.63]);
     deskLight.material.emissive.setHex(color);
     deskLight.material.emissiveIntensity=.5;
     part(room,'box',0x1b2941,[.26,.012,.16],[-.16,.799,.88]);
     part(room,'box',0x17243b,[.60,.035,.22],[-.47,.81,.81]);
     for (let key=0;key<7;key++) part(room,'box',0x76a9dc,[.057,.012,.047],[-.72+key*.081,.833,.81]);
-    part(room,'box',0x272e49,[.65,.12,.57],[-.47,.47,-.39]);
-    part(room,'box',0x333f63,[.66,.56,.095],[-.47,.72,-.66]);
-    part(room,'box',0x252e49,[.1,.4,.1],[-.47,.23,-.39]);
+    part(room,'box',0xe0c6a3,[.65,.12,.57],[-.47,.47,-.39]);
+    part(room,'box',0xe9d6bc,[.66,.56,.095],[-.47,.72,-.66]);
+    part(room,'box',0xb3956a,[.1,.4,.1],[-.47,.23,-.39]);
     const firstAvatarPart = room.children.length;
     const skin = i===1 ? 0xd89470 : 0xffbd91;
     const outfit = [
@@ -402,8 +405,8 @@ try {
   });
   const shell = new T.Group();
   group.add(shell);
-  const wallMaterial = new T.MeshStandardMaterial({color:0x3e5267,roughness:.53,metalness:.15});
-  const revealMaterial = new T.MeshStandardMaterial({color:0x9dbac8,roughness:.43});
+  const wallMaterial = new T.MeshStandardMaterial({color:0xf8edde,roughness:.64,metalness:.03});
+  const revealMaterial = new T.MeshStandardMaterial({color:0xc6a675,roughness:.45,metalness:.28});
   function shellBox(size, xyz, material=wallMaterial) {
     const mesh=new T.Mesh(new T.BoxGeometry(...size),material);
     mesh.position.set(...xyz);
@@ -418,6 +421,12 @@ try {
   shellBox([width,low,thickness],[0,floorY+low/2,front-thickness/2]);
   shellBox([width,.04,.19],[0,floorY+low+.02,front-thickness/2],revealMaterial);
   shellBox([.19,.04,depth],[right-thickness/2,floorY+low+.02,centerZ],revealMaterial);
+  const inlay = new T.MeshStandardMaterial({color:0xd9c5a5,roughness:.63});
+  for (let stripe=0;stripe<9;stripe++) {
+    shellBox([.022,1.60,.10],[left+thickness+.012,floorY+.98,1.1+stripe*.25],inlay);
+  }
+  shellBox([.028,.052,depth-.32],[left+thickness+.014,floorY+.11,centerZ],revealMaterial);
+  shellBox([width-.30,.052,.025],[0,floorY+.11,front-thickness-.012],revealMaterial);
   const rearZ=back+thickness/2;
   shellBox([width,.55,thickness],[0,floorY+.275,rearZ]);
   shellBox([width,.47,thickness],[0,floorY+tall-.235,rearZ]);
@@ -614,7 +623,7 @@ try {
   function plant(x,z,indoor) {
     const base=indoor?floorY:.04;
     const parent=indoor?interior:city;
-    if(indoor) cityBox([.45,.32,.45],[x,base+.16,z],0xa2a2a8,parent);
+    if(indoor) cityBox([.45,.32,.45],[x,base+.16,z],0xf4e2c6,parent);
     cityBox([.085,.62,.085],[x,base+.42,z],0x4f413b,parent);
     for(const [dx,dy,dz] of [[0,.81,0],[-.17,.67,.07],[.18,.70,-.09]]) {
       const leaf=new T.Mesh(leafGeometry,leafMaterial);
@@ -628,15 +637,15 @@ try {
   }
   for(let x=-16;x<=16;x+=3.2) plant(x,-10.7,false);
   // A shared high table sits in the front zone, clear of the center aisle.
-  cityBox([2.1,.075,.86],[4.40,.80,5.54],0xaeccd7,interior);
-  for(const x of [3.58,5.22]) cityBox([.09,.68,.58],[x,.43,5.54],0x252c42,interior);
+  cityBox([2.1,.075,.86],[4.40,.80,5.54],0xf7efe0,interior);
+  for(const x of [3.58,5.22]) cityBox([.09,.68,.58],[x,.43,5.54],0xb99966,interior);
   for(const x of [3.78,5.03]) {
-    cityBox([.47,.09,.38],[x,.47,6.18],0x8793ad,interior);
-    cityBox([.095,.36,.10],[x,.27,6.18],0x303951,interior);
+    cityBox([.47,.09,.38],[x,.47,6.18],0xdfc9a8,interior);
+    cityBox([.095,.36,.10],[x,.27,6.18],0xb99966,interior);
   }
   // Cyan workbench displays with dark steel and red-metal accents.
-  cityBox([2.05,.20,.69],[-4.40,.19,5.60],0x622c32,interior);
-  cityBox([1.85,.17,.55],[-4.40,.365,5.60],0x273d51,interior);
+  cityBox([2.05,.20,.69],[-4.40,.19,5.60],0xb79361,interior);
+  cityBox([1.85,.17,.55],[-4.40,.365,5.60],0xf6eddf,interior);
   cityBox([1.48,.025,.46],[-4.40,.47,5.60],0x63bad7,interior);
   const cyanGlow=new T.MeshBasicMaterial({color:0x76e8ff});
   for (const r of [.24,.38,.53]) {
@@ -697,7 +706,7 @@ try {
     camera.updateProjectionMatrix();
     camera.position.set(target.x+Math.sin(angle)*Math.cos(elevation)*radius,target.y+Math.sin(elevation)*radius,target.z+Math.cos(angle)*Math.cos(elevation)*radius);
     camera.lookAt(target);
-    roomEdges.forEach((edge,i)=>edge.material.color.set(i===Number(view.dataset.selected) ? 0xffd148 : 0x65596a));
+    roomEdges.forEach((edge,i)=>edge.material.color.set(i===Number(view.dataset.selected) ? 0xaa7940 : 0xc6b598));
     renderer.render(scene,camera);
     avatars.forEach(({avatar},i)=>{
       const {caption}=captions[i];
