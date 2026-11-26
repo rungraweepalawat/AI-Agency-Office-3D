@@ -71,22 +71,13 @@ body{margin:0;background:#080d1b;color:#edf3ff}
 @keyframes office-indicator{50%{opacity:.45}}
 @media(prefers-reduced-motion:reduce){#agency-sim .card-activity::before{animation:none}}
 
-#office-3d-stage{
-  background:#769bc4 url("./bangkok-day.webp") center 46% / cover no-repeat;
-}
+main{grid-template-columns:minmax(0,3fr) minmax(245px,1fr)}
+@media(max-width:800px){main{grid-template-columns:minmax(0,1fr)}}
+#office-3d-stage{height:clamp(380px,48vw,710px);background:#8bc6ef}
 #office-3d-stage[hidden],.office-3d-controls button[hidden]{display:none}
 #office-3d-stage canvas{position:relative}
+.office-column{min-width:0}
 .office-avatar-caption{box-shadow:0 0 12px #5ca4f02f}
-#office-3d-stage .city-reference{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#0b2441;z-index:2;pointer-events:none}
-#office-3d-stage .city-reference[hidden]{display:none}
-.office-column.office-fallback{
-  border:1px solid #34486e;border-radius:15px;min-width:0;
-  padding:clamp(90px,16vw,220px) 12px 0;
-  background:no-repeat top center / 100% auto
-    linear-gradient(180deg,transparent 10%,#0d152833 34%,#0d1528 100%),
-    #0d1528 url("./bangkok-day.webp") top center / 100% auto no-repeat;
-}
-.office-column.office-fallback #office-3d{margin-bottom:10px}
 </style>
 <header><h1>AI Agency</h1><span id="connection" class="muted" role="status">กำลังเชื่อมต่อ</span></header>
 <main>
@@ -97,8 +88,7 @@ body{margin:0;background:#080d1b;color:#edf3ff}
 <small id="office-3d-notice" role="status">กำลังโหลดฉาก 3D</small>
 <button id="office-3d-in" type="button" aria-label="ซูมเข้า">+</button>
 <button id="office-3d-out" type="button" aria-label="ซูมออก">−</button>
-<button id="office-city-view" type="button" hidden>วิวกรุงเทพฯ</button>
-<button id="office-3d-reset" type="button">กลับเข้าออฟฟิศ</button>
+<button id="office-3d-reset" type="button">มุมมองเริ่มต้น</button>
 <small id="office-3d-journey" role="status"></small>
 </div>
 </section>
@@ -247,12 +237,18 @@ const view = document.getElementById('office-3d-stage');
 const notice = document.getElementById('office-3d-notice');
 try {
   const T = await import('https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js');
-  const renderer = new T.WebGLRenderer({antialias:true, alpha:true});
+  let renderer;
+  try {
+    renderer = new T.WebGLRenderer({antialias:true, alpha:true});
+  } catch {
+    const {createSoftwareRenderer} = await import('./software-renderer.mjs');
+    renderer = createSoftwareRenderer(T);
+  }
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.outputColorSpace = T.SRGBColorSpace;
   view.append(renderer.domElement);
   const scene = new T.Scene();
-  const citySky = new T.Color(0x8bc6ef);
+  scene.background = new T.Color(0x8bc6ef);
   scene.fog = new T.FogExp2(0xcbe4f4,.018);
   scene.add(new T.HemisphereLight(0xe6f6ff, 0x9c9eaf, 1.85));
   const lamp = new T.DirectionalLight(0xfff2df, 2.55);
@@ -271,7 +267,7 @@ try {
   const captions = [];
   const headPosition = new T.Vector3();
   const sizes = {width:0,height:0};
-  const bounds = {left:-6.08,right:6.08,back:-5.52,front:5.75};
+  const bounds = {left:-7.7,right:7.7,back:-5.52,front:7.15};
   const floorY=.091;
   const {left,right,back,front}=bounds;
   const width=right-left;
@@ -301,9 +297,9 @@ try {
   colors.forEach((color, i) => {
     const room = new T.Group();
     room.userData.room = i;
-    room.position.set(i%2 ? 3.35 : -3.35, 0, (Math.floor(i/2)-1)*3.55);
+    room.position.set(i%2 ? 4.12 : -4.12, 0, (Math.floor(i/2)-1)*3.67);
     group.add(room);
-    const rug = part(room,'box',color,[3.05,.008,1.83],[0,floorY+.004,.08]);
+    const rug = part(room,'box',color,[3.5,.008,2.05],[0,floorY+.004,.08]);
     rug.material.color.lerp(new T.Color(0x463949),.57);
     part(room,'box',0xd9dfe8,[2.2,.08,.78],[.54,.75,.55]);
     part(room,'box',0x293858,[.12,.59,.55],[-.43,.38,.55]);
@@ -449,7 +445,7 @@ try {
     caption.append(name,status);
     view.append(caption);
     captions.push({caption,name,status});
-    const edge = new T.LineSegments(new T.EdgesGeometry(new T.BoxGeometry(3.08,.008,1.85)),new T.LineBasicMaterial({color:0xffffff}));
+    const edge = new T.LineSegments(new T.EdgesGeometry(new T.BoxGeometry(3.53,.008,2.08)),new T.LineBasicMaterial({color:0xffffff}));
     edge.position.set(0,floorY+.013,.08);
     room.add(edge);
     roomEdges.push(edge);
@@ -564,6 +560,105 @@ try {
     windows.setColorAt(i,new T.Color(color));
   });
   city.add(windows);
+  // Shape the street around the shophouse, BTS and temple silhouettes of the reference.
+  {
+    const gold = 0xd9a743;
+    const cream = 0xefe2ca;
+    const vermilion = 0xa74734;
+    const darkGreen = 0x295c51;
+    function addSculpture(geometry, position, color) {
+      const mesh = new T.Mesh(geometry, new T.MeshStandardMaterial({color, roughness:.69}));
+      mesh.position.set(...position);
+      city.add(mesh);
+      return mesh;
+    }
+    function templeRoof(x, z, base, width, depth, rise, color) {
+      const slope = Math.atan2(rise, depth/2);
+      const length = Math.hypot(rise, depth/2);
+      for (const side of [-1,1]) {
+        cityBox([width,.10,length],[x,base+rise/2,z+side*depth/4],color).rotation.x=side*slope;
+        cityBox([width+.08,.06,.08],[x,base,z+side*depth/2],gold);
+      }
+      cityBox([width+.10,.06,.08],[x,base+rise,z],gold);
+      for (const side of [-1,1]) {
+        const finial=addSculpture(new T.ConeGeometry(.105,.37,5),
+          [x+side*(width/2+.02),base+rise+.13,z],gold);
+        finial.rotation.z=-side*.32;
+      }
+    }
+    // Layered red and green roofs and a gold chedi sit just behind the tracks.
+    const hallX=-6.95;
+    const hallZ=-19.55;
+    cityBox([4.35,.15,2.92],[hallX,.08,hallZ],cream);
+    cityBox([3.62,3.15,2.18],[hallX,1.67,hallZ],cream);
+    for (const offset of [-1.43,0,1.43]) {
+      cityBox([.16,3.01,.18],[hallX+offset,1.61,hallZ+1.17],gold);
+    }
+    templeRoof(hallX,hallZ,3.27,4.16,2.72,.84,vermilion);
+    templeRoof(hallX,hallZ,3.93,3.67,1.94,.83,darkGreen);
+    templeRoof(hallX,hallZ,4.49,2.76,1.20,.75,vermilion);
+    const chediX=-8.40;
+    const chediZ=-20.73;
+    cityBox([1.58,3.63,1.50],[chediX,1.82,chediZ],0xd9cbb1);
+    let chediY=3.63;
+    for (const [top,bottom,height] of [
+      [.73,.86,.24],[.68,.73,.25],[.62,.57,.24],[.57,.62,.20],
+      [.48,.58,.45],[.25,.48,.70],[.20,.28,.18],[.11,.20,.32],[.015,.11,.80],
+    ]) {
+      addSculpture(new T.CylinderGeometry(top,bottom,height,12),
+        [chediX,chediY+height/2,chediZ],gold);
+      chediY+=height;
+    }
+    const details=[];
+    const block=(size,position,color,tilt=0)=>details.push({size,position,color,tilt});
+    for (let house=0;house<12;house++) {
+      const x=(house-5.5)*2.7;
+      const doorColor=[0x685041,0x4d6657,0x796050][house%3];
+      const shutterColor=[0x43705b,0x35618a,0x476e65][house%3];
+      const h=2.5+(house%3)*.34;
+      block([.67,.90,.05],[x,.47,-11.224],doorColor);
+      block([.69,.12,.07],[x,1.88,-11.224],cream);
+      block([.08,.87,.055],[x,.47,-11.190],0x31404c);
+      block([.11,.51,.075],[x-.45,1.62,-11.210],shutterColor);
+      block([.11,.51,.075],[x+.45,1.62,-11.210],shutterColor);
+      block([2.35,.075,.13],[x,h-.10,-11.230],cream);
+      for (let stripe=0; stripe<5; stripe++) {
+        block([.17,.025,.53],[x-.82+stripe*.365,1.15,-11.027],cream,.18);
+      }
+    }
+    for (let curb=0;curb<48;curb++) {
+      block([.55,.09,.12],[-13+curb*.56,.074,-10.43],curb%2?cream:0xb85142);
+    }
+    // Framed windows and a navy lower stripe make the elevated train more legible.
+    for (let car=0;car<3;car++) {
+      const x=-5.8+car*2.4;
+      block([2.17,.095,.019],[x,4.16,-16.473],0x264d73);
+      block([2.05,.085,.85],[x,4.552,-16.9],0x7a8794);
+      for (const offset of [-.82,0,.82]) {
+        block([.022,.30,.018],[x+offset,4.29,-16.451],cream);
+      }
+    }
+    for (let support=-12;support<15;support+=4) {
+      block([.60,.18,.63],[support,3.54,-16.9],0xbcc1c6);
+    }
+    for (const x of [-10.5,-4.5,1.5,7.5,13.5]) {
+      block([.085,1.34,.085],[x,.71,-10.35],0x20484d);
+      block([.17,.24,.17],[x,1.46,-10.35],0xf2cf88);
+      block([.21,.07,.21],[x,1.61,-10.35],0x20484d);
+    }
+    const detailBlocks = new T.InstancedMesh(blockGeometry,
+      new T.MeshStandardMaterial({color:0xffffff,roughness:.80}),details.length);
+    const detailTransform=new T.Object3D();
+    details.forEach(({size,position,color,tilt},i)=>{
+      detailTransform.position.set(...position);
+      detailTransform.scale.set(...size);
+      detailTransform.rotation.x=tilt;
+      detailTransform.updateMatrix();
+      detailBlocks.setMatrixAt(i, detailTransform.matrix);
+      detailBlocks.setColorAt(i,new T.Color(color));
+    });
+    city.add(detailBlocks);
+  }
   const leafGeometry=new T.IcosahedronGeometry(.34,1);
   const leafMaterial=new T.MeshStandardMaterial({color:0x356c56,roughness:.94});
   function plant(x,z,indoor) {
@@ -577,33 +672,33 @@ try {
       parent.add(leaf);
     }
   }
-  for(const x of [-5.55,5.55]) {
-    plant(x,4.63,true);
+  for(const x of [-7.01,7.01]) {
+    plant(x,5.77,true);
     plant(x,-4.48,true);
   }
   for(let x=-16;x<=16;x+=3.2) plant(x,-10.7,false);
   // A shared high table sits in the front zone, clear of the center aisle.
-  cityBox([2.1,.075,.86],[3.65,.80,4.72],0xaeccd7,interior);
-  for(const x of [2.83,4.47]) cityBox([.09,.68,.58],[x,.43,4.72],0x252c42,interior);
-  for(const x of [3.03,4.28]) {
-    cityBox([.47,.09,.38],[x,.47,5.35],0x8793ad,interior);
-    cityBox([.095,.36,.10],[x,.27,5.35],0x303951,interior);
+  cityBox([2.1,.075,.86],[4.40,.80,5.54],0xaeccd7,interior);
+  for(const x of [3.58,5.22]) cityBox([.09,.68,.58],[x,.43,5.54],0x252c42,interior);
+  for(const x of [3.78,5.03]) {
+    cityBox([.47,.09,.38],[x,.47,6.18],0x8793ad,interior);
+    cityBox([.095,.36,.10],[x,.27,6.18],0x303951,interior);
   }
   // Cyan workbench displays with dark steel and red-metal accents.
-  cityBox([2.05,.20,.69],[-3.65,.19,4.82],0x622c32,interior);
-  cityBox([1.85,.17,.55],[-3.65,.365,4.82],0x273d51,interior);
-  cityBox([1.48,.025,.46],[-3.65,.47,4.82],0x63bad7,interior);
+  cityBox([2.05,.20,.69],[-4.40,.19,5.60],0x622c32,interior);
+  cityBox([1.85,.17,.55],[-4.40,.365,5.60],0x273d51,interior);
+  cityBox([1.48,.025,.46],[-4.40,.47,5.60],0x63bad7,interior);
   const cyanGlow=new T.MeshBasicMaterial({color:0x76e8ff});
   for (const r of [.24,.38,.53]) {
     const ring=new T.Mesh(new T.TorusGeometry(r,.012,8,36),cyanGlow);
     ring.rotation.x=-Math.PI/2;
-    ring.position.set(-3.65,.78+(r-.24)*.52,4.82);
+    ring.position.set(-4.40,.78+(r-.24)*.52,5.60);
     interior.add(ring);
   }
   const model=new T.Mesh(new T.OctahedronGeometry(.22),new T.MeshStandardMaterial({
     color:0x53bada,emissive:0x107baa,emissiveIntensity:.55,wireframe:true
   }));
-  model.position.set(-3.65,.925,4.82);
+  model.position.set(-4.40,.925,5.60);
   interior.add(model);
   const limbAxis = new T.Vector3(0,1,0);
   const limbDirection = new T.Vector3();
@@ -634,31 +729,10 @@ try {
     }
   }
   avatars.forEach(person=>pose(person,0));
-  let angle=.32, elevation=.49, radius=22, start=null;
-  const target=new T.Vector3(0,2.05,-2.25);
-  const cityButton=document.getElementById('office-city-view');
-  const reference=document.createElement('img');
-  reference.className='city-reference';
-  reference.src='./bangkok-day.webp';
-  reference.alt='ภาพอ้างอิงกรุงเทพฯ ตอนกลางวัน';
-  reference.hidden=true;
-  view.append(reference);
-  let cityMode=false;
-  function enterCity(){
-    cityMode=true;
-    scene.background=citySky;
-    angle=.32; elevation=.22; radius=19;
-    target.set(1.3,3.15,-14.6);
-    group.children.forEach(object=>{object.visible=object===city || object===site;});
-    reference.hidden=false;
-    notice.textContent='ภาพอ้างอิง · ลากหรือซูมเพื่อดูเมือง 3D';
-    render();
-  }
-  function revealCity(){
-    if(!cityMode || reference.hidden) return;
-    reference.hidden=true;
-    notice.textContent='วิวเมือง 3D · ลากเพื่อหมุน';
-  }
+  const initialView={angle:.25,elevation:.43,radius:25.8};
+  let {angle,elevation,radius}=initialView;
+  let start=null;
+  const target=new T.Vector3(-.15,2.95,-3.50);
   function render() {
     const width = view.clientWidth;
     const height = view.clientHeight;
@@ -669,7 +743,7 @@ try {
       sizes.height=height;
     }
     camera.aspect=width/height;
-    camera.fov=width/height<1 ? 58 : 47;
+    camera.fov=width/height<1 ? 64 : 49;
     camera.updateProjectionMatrix();
     camera.position.set(target.x+Math.sin(angle)*Math.cos(elevation)*radius,target.y+Math.sin(elevation)*radius,target.z+Math.cos(angle)*Math.cos(elevation)*radius);
     camera.lookAt(target);
@@ -680,7 +754,7 @@ try {
       avatar.getWorldPosition(headPosition);
       headPosition.y+=2.30;
       headPosition.project(camera);
-      caption.hidden = cityMode || headPosition.z>1 || Math.abs(headPosition.x)>.99 || Math.abs(headPosition.y)>.99;
+      caption.hidden = headPosition.z>1 || Math.abs(headPosition.x)>.99 || Math.abs(headPosition.y)>.99;
       caption.style.left = ((headPosition.x+1)*width/2)+'px';
       caption.style.top = ((1-headPosition.y)*height/2)+'px';
     });
@@ -763,7 +837,7 @@ try {
   canvas.addEventListener('pointerleave',()=>chooseHovered(-1));
   canvas.addEventListener('pointermove',e=>{
     if (!start) {
-      if (cityMode || e.pointerType==='touch') return;
+      if (e.pointerType==='touch') return;
       const rect=canvas.getBoundingClientRect();
       vector.set((e.clientX-rect.left)/rect.width*2-1,1-(e.clientY-rect.top)/rect.height*2);
       ray.setFromCamera(vector,camera);
@@ -772,7 +846,6 @@ try {
       return;
     }
     chooseHovered(-1);
-    if (Math.hypot(e.clientX-start.x,e.clientY-start.y)>3) revealCity();
     angle=start.angle-(e.clientX-start.x)*.009;
     elevation=Math.max(.30,Math.min(1.44,start.elevation+(e.clientY-start.y)*.007));
     render();
@@ -781,7 +854,7 @@ try {
     if (!start) return;
     const click=Math.hypot(e.clientX-start.x,e.clientY-start.y)<5;
     start=null;
-    if (!click || cityMode) return;
+    if (!click) return;
     const rect=canvas.getBoundingClientRect();
     vector.set((e.clientX-rect.left)/rect.width*2-1,1-(e.clientY-rect.top)/rect.height*2);
     ray.setFromCamera(vector,camera);
@@ -789,23 +862,14 @@ try {
     if(location) view.dispatchEvent(new CustomEvent('office-room',{detail:location.object.userData.room}));
   });
   canvas.addEventListener('pointercancel',()=>{start=null;});
-  function zoom(change) { revealCity(); radius=Math.max(10,Math.min(29,radius+change)); render(); }
+  function zoom(change) { radius=Math.max(9,Math.min(42,radius+change)); render(); }
   canvas.addEventListener('wheel',e=>{e.preventDefault();zoom(Math.sign(e.deltaY)*.75);},{passive:false});
   document.getElementById('office-3d-in').onclick=()=>zoom(-1);
   document.getElementById('office-3d-out').onclick=()=>zoom(1);
-  cityButton.hidden=false;
-  cityButton.onclick=enterCity;
-  function enterOffice(){
-    cityMode=false;
-    scene.background=null;
-    reference.hidden=true;
-    target.set(0,2.05,-2.25);
-    group.children.forEach(object=>{object.visible=object!==city && object!==site;});
-    angle=.32;elevation=.49;radius=22;
-    notice.textContent='ชี้ที่ตัวละครให้ลุก · ลากเพื่อหมุน · คลิกห้องเพื่อเลือกผู้ช่วย';
+  document.getElementById('office-3d-reset').onclick=()=>{
+    ({angle,elevation,radius}=initialView);
     render();
-  }
-  document.getElementById('office-3d-reset').onclick=enterOffice;
+  };
   new ResizeObserver(render).observe(view);
   let displayedRoles = [];
   function updateLabels() {
@@ -854,13 +918,12 @@ try {
     });
     render();
   });
-  enterOffice();
+  notice.textContent='ลากเพื่อหมุน · ใช้ล้อเมาส์หรือปุ่ม + / − เพื่อซูม';
   updateLabels();
 } catch {
   view.hidden = true;
-  view.closest('.office-column').classList.add('office-fallback');
-  notice.textContent = 'มุมมองการ์ด · เบราว์เซอร์นี้เปิด WebGL ไม่ได้';
-  for (const id of ['office-3d-in','office-3d-out','office-city-view','office-3d-reset']) {
+  notice.textContent = 'ฉาก 3D โหลดไม่ได้ · ยังเลือกผู้ช่วยจากการ์ดด้านล่างได้';
+  for (const id of ['office-3d-in','office-3d-out','office-3d-reset']) {
     document.getElementById(id).hidden = true;
   }
 }

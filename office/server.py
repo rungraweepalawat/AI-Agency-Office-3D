@@ -104,6 +104,8 @@ class OfficeHandler(BaseHTTPRequestHandler):
             self.respond(200, (OFFICE / "bangkok-day.webp").read_bytes(), "image/webp")
         elif self.path == "/bangkok-night.webp":
             self.respond(200, (OFFICE / "bangkok-night.webp").read_bytes(), "image/webp")
+        elif self.path == "/software-renderer.mjs":
+            self.respond(200, (OFFICE / "software-renderer.mjs").read_bytes(), "text/javascript; charset=utf-8")
         elif self.path == "/api/jobs":
             with lock:
                 snapshot = [job.copy() for job in jobs]
