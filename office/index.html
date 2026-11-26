@@ -80,6 +80,8 @@ body{margin:0;background:#080d1b;color:#edf3ff}
 .office-skyline:has(+ #office-3d.office-rendered){display:none}
 #office-3d-stage .city-reference{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#0b2441;z-index:2;pointer-events:none}
 #office-3d-stage .city-reference[hidden],#office-city-view[hidden]{display:none}
+#office-3d-stage .office-skyline,.office-skyline:has(+ #office-3d){background-size:contain;background-position:center}
+.office-skyline:has(+ #office-3d){height:auto;aspect-ratio:2}
 </style>
 <header><h1>AI Agency</h1><span id="connection" class="muted" role="status">กำลังเชื่อมต่อ</span></header>
 <main>
@@ -91,7 +93,7 @@ body{margin:0;background:#080d1b;color:#edf3ff}
 <button id="office-3d-in" type="button" aria-label="ซูมเข้า">+</button>
 <button id="office-3d-out" type="button" aria-label="ซูมออก">−</button>
 <button id="office-city-view" type="button" hidden>วิวกรุงเทพฯ</button>
-<button id="office-3d-reset" type="button">มุมมองรวม</button>
+<button id="office-3d-reset" type="button">กลับเข้าออฟฟิศ</button>
 <small id="office-3d-journey" role="status"></small>
 </div>
 </section>
@@ -842,11 +844,15 @@ try {
     });
     render();
   });
-  updateLabels();
   view.closest('#office-3d').classList.add('office-rendered');
-  notice.textContent='ชี้ที่ตัวละครให้ลุก · ลากเพื่อหมุน · คลิกห้องเพื่อเลือกผู้ช่วย';
-  render();
+  enterCity();
+  updateLabels();
 } catch {
+  const fallback = document.createElement('img');
+  fallback.className='city-reference';
+  fallback.src='./bangkok-day.webp';
+  fallback.alt='ภาพวิวกรุงเทพฯ ตอนกลางวัน';
+  view.replaceChildren(fallback);
   notice.textContent='ฉาก 3D เปิดไม่ได้บนอุปกรณ์นี้ · เลือกผู้ช่วยจากการ์ดด้านล่างได้';
   for(const id of ['office-3d-in','office-3d-out','office-3d-reset']) document.getElementById(id).disabled=true;
 }
