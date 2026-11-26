@@ -115,6 +115,12 @@ main{grid-template-columns:minmax(0,4fr) minmax(250px,1fr);align-items:start}
   box-shadow:inset 0 1px 0 #fff,0 10px 26px #33587918;
   backdrop-filter:blur(18px) saturate(132%);
 }
+.chat-heading{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px}
+.chat-heading h2{margin:0}
+#team-chat{padding:6px 10px;border:1px solid #a9c1d5;border-radius:999px;background:#ffffffab;color:#244356}
+#team-chat[aria-pressed="true"]{background:#244356;color:white;border-color:#244356}
+.chat-step{margin-top:10px;padding:8px 10px;border-radius:8px;background:#ffffffa8;border:1px solid #b6ccdb}
+.chat-step p{margin:5px 0}
 .office-sidebar .command-form{gap:8px}
 .office-sidebar .command-form input:not([type=checkbox]){
   min-width:0;background:#ffffffab;border:1px solid #a9c1d5;color:#253c52;
@@ -149,7 +155,7 @@ main{grid-template-columns:minmax(0,4fr) minmax(250px,1fr);align-items:start}
 </section>
 <aside class="office-sidebar">
 <section class="panel"><h2>รายการงาน</h2><div class="region" id="tasks"></div></section>
-<section class="panel command-panel"><h2>แชท</h2><div class="region" id="chat" role="log"></div>
+<section class="panel command-panel"><div class="chat-heading"><h2>แชท</h2><button id="team-chat" type="button">ทีมรวม</button></div><div class="region" id="chat" role="log"></div>
 <form id="form" class="command-form"><label id="recipient" for="message"></label><div class="compose"><input id="message" placeholder="พิมพ์โจทย์งาน" maxlength="4000" required><button class="send" type="submit">ส่ง</button></div><label id="handoff-option" hidden><input type="checkbox" id="handoff"> ส่งบรีฟให้ Graphic Designer อัตโนมัติ</label><p id="error" role="alert" class="muted"></p></form></section>
 </aside>
 <section class="team-switcher" aria-label="ทีมผู้ช่วย">
@@ -169,7 +175,9 @@ const labels = {idle:'ยังไม่มีงาน',queued:'รอทำง
 const el = id => document.getElementById(id);
 const rooms = new Map();
 const names = new Map(roles.map(([id,name]) => [id,name]));
-let selected = 'sales';
+names.set('team','ทีมรวม');
+let selected = 'team';
+el('team-chat').onclick = () => {selected='team'; render();};
 let jobs = [];
 let signature = '';
 let firstSnapshot = true;
@@ -211,30 +219,51 @@ function render() {
     sceneRoles.push({name:names.get(id),status:labels[state],activity:active?.prompt.slice(0,65) || ''});
   }
   stage.dataset.roles=JSON.stringify(sceneRoles);
+  el('team-chat').setAttribute('aria-pressed',String(selected==='team'));
   el('handoff-option').hidden = selected !== 'content';
   el('recipient').textContent = 'ส่งถึง '+names.get(selected);
   const tasks=el('tasks');
   const chat=el('chat');
+  const chatScroll = chat.scrollTop;
+  const followChat = chat.dataset.thread!==selected
+    || chat.scrollHeight-chat.clientHeight-chatScroll < 16;
+  chat.dataset.thread=selected;
   tasks.replaceChildren();
   chat.replaceChildren();
   if (!jobs.length) text(tasks,'p','ยังไม่มีงาน','muted');
   for (const job of [...jobs].reverse()) {
     const row=text(tasks,'div','','row');
     text(row,'strong',job.prompt);
-    if (job.parent_id) text(row,'small','รับบรีฟต่อจาก Content Planner');
+    const parent = jobs.find(item => item.id===job.parent_id);
+    if (parent) text(row,'small','รับงานต่อจาก '+names.get(parent.role));
     text(row,'div',names.get(job.role)+' · '+labels[job.status],'status '+job.status);
   }
-  const thread=jobs.filter(job => job.role===selected);
-  if (!thread.length) text(chat,'p','ยังไม่มีข้อความสำหรับผู้ช่วยนี้','muted');
+  const thread=jobs.filter(job => job.role===selected && !job.team_id);
+  if (!thread.length) {
+    const hint = selected==='team' ? 'ส่งโจทย์เดียวให้ทีมเลือกคนรับงานและส่งต่อกัน' : 'ยังไม่มีข้อความสำหรับผู้ช่วยนี้';
+    text(chat,'p',hint,'muted');
+  }
   for (const job of thread) {
     const row=text(chat,'div','','row');
     text(row,'strong','คุณ');
     text(row,'p',job.prompt);
-    if(job.answer) {
+    if (selected==='team') {
+      text(row,'small',labels[job.status],'status '+job.status);
+      if (job.answer) text(row,'p',job.answer);
+      for (const child of jobs.filter(item => item.team_id===job.id)) {
+        const card=text(row,'div','','chat-step');
+        text(card,'strong',names.get(child.role));
+        text(card,'div',labels[child.status],'status '+child.status);
+        text(card,'p',child.prompt);
+        if (child.needs.length) text(card,'small','ใช้ผลงานจาก '+child.needs.map(role => names.get(role)).join(', '));
+        if (child.answer) text(card,'p',child.answer);
+      }
+    } else if (job.answer) {
       text(row,'strong',names.get(job.role));
       text(row,'p',job.answer);
     } else text(row,'small',labels[job.status]);
   }
+  chat.scrollTop = followChat ? chat.scrollHeight : chatScroll;
 }
 async function refresh() {
   try {
