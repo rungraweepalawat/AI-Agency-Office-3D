@@ -169,6 +169,7 @@ export function createSoftwareRenderer(Three) {
       const dimensions = mesh.geometry.parameters;
       if (mesh.geometry.type === 'BoxGeometry' && dimensions.width > 10 &&
           dimensions.depth > 8 && dimensions.height <= .12) face.depth = 900;
+      if (mesh.userData.paintDepth !== undefined) face.depth = mesh.userData.paintDepth;
       faces.push(face);
     }
   }

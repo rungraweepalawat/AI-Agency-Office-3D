@@ -85,6 +85,11 @@ main{grid-template-columns:minmax(0,3fr) minmax(245px,1fr)}
 #office-3d-stage canvas{position:relative}
 .office-column{min-width:0}
 .office-avatar-caption{box-shadow:0 3px 12px #3b241f26}
+
+.office-avatar-caption{width:106px;max-width:none;box-sizing:border-box;padding:3px 5px;line-height:1.12}
+.office-avatar-caption strong{font-size:11px}
+.office-avatar-caption small{font-size:10px;margin-top:2px}
+@media(max-width:620px){.office-avatar-caption{width:90px}.office-avatar-caption strong{font-size:10px}}
 </style>
 <header><h1>AI Agency</h1><span id="connection" class="muted" role="status">กำลังเชื่อมต่อ</span></header>
 <main>
@@ -280,7 +285,7 @@ try {
   const width=right-left;
   const depth=front-back;
   const centerZ=(front+back)/2;
-  const floor = new T.Mesh(new T.BoxGeometry(width,.09,depth),new T.MeshStandardMaterial({color:0xf0e6d3,roughness:.42,metalness:.05}));
+  const floor = new T.Mesh(new T.BoxGeometry(width,.09,depth),new T.MeshStandardMaterial({color:0xd7c9b5,roughness:.37,metalness:.06}));
   floor.position.set(0,floorY-.045,centerZ);
   group.add(floor);
   const site = new T.Mesh(new T.PlaneGeometry(92,88),new T.MeshStandardMaterial({color:0x758593,roughness:1}));
@@ -301,14 +306,34 @@ try {
     hit.push(object);
     return object;
   }
+  const shadowShape = new T.CircleGeometry(1,24);
+  const shadowLayers = [[1,.065],[.80,.075],[.59,.09]].map(([scale,opacity])=>({
+    scale,material:new T.MeshBasicMaterial({color:0x745b40,transparent:true,opacity,depthWrite:false})
+  }));
+  function contactShadow(parent,x,z,radiusX,radiusZ) {
+    shadowLayers.forEach(({scale,material},i)=>{
+      const shadow=new T.Mesh(shadowShape,material);
+      shadow.rotation.x=-Math.PI/2;
+      shadow.scale.set(radiusX*scale,radiusZ*scale,1);
+      shadow.position.set(x,floorY+.009+i*.0003,z);
+      shadow.userData.paintDepth=880-i;
+      shadow.renderOrder=i;
+      parent.add(shadow);
+    });
+  }
   colors.forEach((color, i) => {
     const room = new T.Group();
     room.userData.room = i;
     room.position.set(i%2 ? 4.12 : -4.12, 0, (Math.floor(i/2)-1)*3.67);
     group.add(room);
     const rug = part(room,'box',color,[3.5,.008,2.05],[0,floorY+.004,.08]);
-    rug.material.color.lerp(new T.Color(0xe6d5bb),.87);
-    part(room,'box',0xfffaf1,[2.2,.08,.78],[.54,.75,.55]);
+    rug.material.color.lerp(new T.Color(0xd4baa0),.88);
+    rug.userData.paintDepth=890;
+    contactShadow(room,.38,.62,1.46,.55);
+    contactShadow(room,-.47,-.40,.48,.39);
+    const deskTop=part(room,'box',0xf7f3e7,[2.2,.08,.78],[.54,.75,.55]);
+    deskTop.material.roughness=.31;
+    part(room,'box',0xc8aa7a,[2.2,.019,.021],[.54,.719,.94]);
     part(room,'box',0xc1a071,[.12,.59,.55],[-.43,.38,.55]);
     part(room,'box',0xc1a071,[.12,.59,.55],[1.51,.38,.55]);
     part(room,'box',0xe7ddd1,[.71,.43,.055],[-.47,1.075,1.035]);
@@ -345,8 +370,11 @@ try {
     part(room,'box',0x1b2941,[.26,.012,.16],[-.16,.799,.88]);
     part(room,'box',0x17243b,[.60,.035,.22],[-.47,.81,.81]);
     for (let key=0;key<7;key++) part(room,'box',0x76a9dc,[.057,.012,.047],[-.72+key*.081,.833,.81]);
-    part(room,'box',0xe0c6a3,[.65,.12,.57],[-.47,.47,-.39]);
-    part(room,'box',0xe9d6bc,[.66,.56,.095],[-.47,.72,-.66]);
+    const cushion=part(room,'box',0xc4a787,[.65,.12,.57],[-.47,.47,-.39]);
+    cushion.material.roughness=.96;
+    const backrest=part(room,'box',0xd3b99e,[.66,.56,.095],[-.47,.72,-.66]);
+    backrest.material.roughness=.96;
+    part(room,'box',0xb49679,[.55,.012,.006],[-.47,.82,-.610]);
     part(room,'box',0xb3956a,[.1,.4,.1],[-.47,.23,-.39]);
     const firstAvatarPart = room.children.length;
     const skin = i===1 ? 0xd89470 : 0xffbd91;
@@ -697,7 +725,10 @@ try {
     cityBox([.47,.09,.38],[x,.47,6.18],0xdfc9a8,interior);
     cityBox([.095,.36,.10],[x,.27,6.18],0xb99966,interior);
   }
-  // Cyan workbench displays with dark steel and red-metal accents.
+  contactShadow(interior,4.4,5.55,1.27,.52);
+  contactShadow(interior,4.4,6.18,.90,.30);
+  contactShadow(interior,-4.4,5.60,1.16,.48);
+  // Champagne casing and a cyan display for the front workbench.
   cityBox([2.05,.20,.69],[-4.40,.19,5.60],0xb79361,interior);
   cityBox([1.85,.17,.55],[-4.40,.365,5.60],0xf6eddf,interior);
   cityBox([1.48,.025,.46],[-4.40,.47,5.60],0x63bad7,interior);
@@ -762,14 +793,31 @@ try {
     camera.lookAt(target);
     roomEdges.forEach((edge,i)=>edge.material.color.set(i===Number(view.dataset.selected) ? 0xaa7940 : 0xc6b598));
     renderer.render(scene,camera);
+    const labels=[];
     avatars.forEach(({avatar},i)=>{
       const {caption}=captions[i];
       avatar.getWorldPosition(headPosition);
-      headPosition.y+=2.30;
+      headPosition.y+=2.38;
       headPosition.project(camera);
-      caption.hidden = headPosition.z>1 || Math.abs(headPosition.x)>.99 || Math.abs(headPosition.y)>.99;
-      caption.style.left = ((headPosition.x+1)*width/2)+'px';
-      caption.style.top = ((1-headPosition.y)*height/2)+'px';
+      caption.hidden = headPosition.z>1 || Math.abs(headPosition.x)>.96 || Math.abs(headPosition.y)>.96;
+      if (!caption.hidden) labels.push({caption,x:(headPosition.x+1)*width/2,y:(1-headPosition.y)*height/2});
+    });
+    const labelWidth=106;
+    const gap=37;
+    const placed=[];
+    // Place the closest labels first, lifting any label that would cover another.
+    labels.sort((a,b)=>b.y-a.y).forEach(({caption,x,y})=>{
+      x=Math.min(width-labelWidth/2-3,Math.max(labelWidth/2+3,x));
+      for(const other of placed) {
+        if(Math.abs(x-other.x)<labelWidth+4 && Math.abs(y-other.y)<gap) y=other.y-gap;
+      }
+      if(y<gap) {
+        caption.hidden=true;
+        return;
+      }
+      caption.style.left=x+'px';
+      caption.style.top=y+'px';
+      placed.push({x,y});
     });
   }
   const trips = [];
@@ -885,12 +933,14 @@ try {
   };
   new ResizeObserver(render).observe(view);
   let displayedRoles = [];
+  const shortRoleNames = ['ฝ่ายขาย','คอนเทนต์','กราฟิก','ตัดต่อวิดีโอ','SEO','พัฒนาเว็บ'];
   function updateLabels() {
     displayedRoles = JSON.parse(view.dataset.roles || '[]');
     displayedRoles.forEach((role,i)=>{
       const {name,status}=captions[i];
-      name.textContent=role.name;
-      status.textContent=role.activity ? role.status+' · '+role.activity : role.status;
+      name.textContent=shortRoleNames[i];
+      name.title=role.name;
+      status.textContent=role.status;
       status.title=role.activity ? role.status+' · '+role.activity : role.status;
     });
     render();
