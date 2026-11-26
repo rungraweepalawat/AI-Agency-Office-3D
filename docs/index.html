@@ -71,6 +71,8 @@ body{margin:0;background:#080d1b;color:#edf3ff}
 #office-3d-stage canvas{position:relative}
 .office-avatar-caption{box-shadow:0 0 12px #5ca4f02f}
 .office-skyline:has(+ #office-3d.office-rendered){display:none}
+#office-3d-stage .city-reference{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#0b2441;z-index:2;pointer-events:none}
+#office-3d-stage .city-reference[hidden],#office-city-view[hidden]{display:none}
 </style>
 <header><h2>AI Agency</h2><small>โหมดจำลอง · สถานะและข้อความเป็นตัวอย่าง</small></header>
 <div class="layout">
@@ -81,6 +83,7 @@ body{margin:0;background:#080d1b;color:#edf3ff}
 <small id="office-3d-notice" role="status">กำลังโหลดฉาก 3D</small>
 <button id="office-3d-in" type="button" aria-label="ซูมเข้า">+</button>
 <button id="office-3d-out" type="button" aria-label="ซูมออก">−</button>
+<button id="office-city-view" type="button" hidden>วิวกรุงเทพฯ</button>
 <button id="office-3d-reset" type="button">มุมมองรวม</button>
 <small id="office-3d-journey" role="status"></small>
 </div>
@@ -448,6 +451,26 @@ try {
       }
     }
   }
+  cityBox([16,.037,26],[24.5,.024,-19],0x277dad);
+  for(const z of [-29,-25,-21,-17,-13,-9]) {
+    cityBox([8,.005,.055],[24.5,.046,z],0x7cd2e9);
+  }
+  cityBox([31,.35,1.28],[.5,3.75,-16.9],0xaab0b6);
+  for(let x=-13;x<15;x+=4) cityBox([.33,3.6,.37],[x,1.8,-16.9],0x9ca8b5);
+  for(let car=0;car<3;car++) {
+    const x=-5.8+car*2.4;
+    cityBox([2.22,.59,.83],[x,4.23,-16.9],0xe9edf2);
+    cityBox([2.13,.095,.847],[x,4.06,-16.9],0xcd4145);
+    for(let window=0;window<5;window++) cityBox([.31,.22,.022],[x-.78+window*.39,4.29,-16.47],0x226c95);
+  }
+  const tukX=7.2;
+  cityBox([.78,.28,.39],[tukX,.29,-8.45],0x145196);
+  cityBox([.74,.09,.43],[tukX-.07,.69,-8.45],0x24334e);
+  cityBox([.09,.36,.09],[tukX+.33,.47,-8.45],0xf0c43e);
+  cityBox([.09,.36,.09],[tukX-.36,.47,-8.45],0xf0c43e);
+  for(const [x,z] of [[-.29,.17],[-.29,-.17],[.34,0]]) {
+    cityBox([.16,.17,.09],[tukX+x,.145,-8.45+z],0x252934);
+  }
   cityBox([48,.035,4.4],[0,.012,-8.2],0x263148);
   cityBox([48,.05,1.1],[0,.035,-5.58],0x586074);
   for(let x=-21;x<=21;x+=3) cityBox([1.15,.013,.035],[x,.04,-8.2],0xb99d6d);
@@ -455,7 +478,14 @@ try {
     const x=(i-5.5)*2.7;
     const h=2.5+(i%3)*.34;
     building(x,-12.5,2.42,2.5,h,[0x715752,0x796658,0x465b69][i%3]);
-    cityBox([2.55,.15,2.68],[x,h+.06,-12.5],0x383c52);
+    const roofColor=[0x9d4133,0xb15439,0x465875][i%3];
+    for(const side of [-1,1]){
+      const roof=cityBox([2.58,.10,1.44],[x,h+.22,-12.5+side*.65],roofColor);
+      roof.rotation.x=side*.27;
+    }
+    const awning=cityBox([1.88,.08,.55],[x,1.1,-11.02],[0x3c7967,0x326ca0,0xaf4748][i%3]);
+    awning.rotation.x=.18;
+    for(const offset of [-.75,0,.75]) cityBox([.085,h*.85,.10],[x+offset,h*.46,-11.20],0xe2c8a0);
   }
   for(let i=0;i<14;i++) {
     const x=(i-6.5)*3.45;
@@ -547,6 +577,28 @@ try {
   avatars.forEach(person=>pose(person,0));
   let angle=.32, elevation=.49, radius=22, start=null;
   const target=new T.Vector3(0,2.05,-2.25);
+  const cityButton=document.getElementById('office-city-view');
+  const reference=document.createElement('img');
+  reference.className='city-reference';
+  reference.src='./bangkok-day.webp';
+  reference.alt='ภาพอ้างอิงกรุงเทพฯ ตอนกลางวัน';
+  reference.hidden=true;
+  view.append(reference);
+  let cityMode=false;
+  function enterCity(){
+    cityMode=true;
+    angle=.32; elevation=.22; radius=19;
+    target.set(1.3,3.15,-14.6);
+    group.children.forEach(object=>{object.visible=object===city || object===site;});
+    reference.hidden=false;
+    notice.textContent='ภาพอ้างอิง · ลากหรือซูมเพื่อดูเมือง 3D';
+    render();
+  }
+  function revealCity(){
+    if(!cityMode || reference.hidden) return;
+    reference.hidden=true;
+    notice.textContent='วิวเมือง 3D · ลากเพื่อหมุน';
+  }
   function render() {
     const width = view.clientWidth;
     const height = view.clientHeight;
@@ -568,7 +620,7 @@ try {
       avatar.getWorldPosition(headPosition);
       headPosition.y+=2.30;
       headPosition.project(camera);
-      caption.hidden = headPosition.z>1 || Math.abs(headPosition.x)>.99 || Math.abs(headPosition.y)>.99;
+      caption.hidden = cityMode || headPosition.z>1 || Math.abs(headPosition.x)>.99 || Math.abs(headPosition.y)>.99;
       caption.style.left = ((headPosition.x+1)*width/2)+'px';
       caption.style.top = ((1-headPosition.y)*height/2)+'px';
     });
@@ -651,7 +703,7 @@ try {
   canvas.addEventListener('pointerleave',()=>chooseHovered(-1));
   canvas.addEventListener('pointermove',e=>{
     if (!start) {
-      if (e.pointerType==='touch') return;
+      if (cityMode || e.pointerType==='touch') return;
       const rect=canvas.getBoundingClientRect();
       vector.set((e.clientX-rect.left)/rect.width*2-1,1-(e.clientY-rect.top)/rect.height*2);
       ray.setFromCamera(vector,camera);
@@ -660,6 +712,7 @@ try {
       return;
     }
     chooseHovered(-1);
+    if (Math.hypot(e.clientX-start.x,e.clientY-start.y)>3) revealCity();
     angle=start.angle-(e.clientX-start.x)*.009;
     elevation=Math.max(.30,Math.min(1.44,start.elevation+(e.clientY-start.y)*.007));
     render();
@@ -668,7 +721,7 @@ try {
     if (!start) return;
     const click=Math.hypot(e.clientX-start.x,e.clientY-start.y)<5;
     start=null;
-    if (!click) return;
+    if (!click || cityMode) return;
     const rect=canvas.getBoundingClientRect();
     vector.set((e.clientX-rect.left)/rect.width*2-1,1-(e.clientY-rect.top)/rect.height*2);
     ray.setFromCamera(vector,camera);
@@ -676,11 +729,21 @@ try {
     if(location) view.dispatchEvent(new CustomEvent('office-room',{detail:location.object.userData.room}));
   });
   canvas.addEventListener('pointercancel',()=>{start=null;});
-  function zoom(change) { radius=Math.max(10,Math.min(29,radius+change)); render(); }
+  function zoom(change) { revealCity(); radius=Math.max(10,Math.min(29,radius+change)); render(); }
   canvas.addEventListener('wheel',e=>{e.preventDefault();zoom(Math.sign(e.deltaY)*.75);},{passive:false});
   document.getElementById('office-3d-in').onclick=()=>zoom(-1);
   document.getElementById('office-3d-out').onclick=()=>zoom(1);
-  document.getElementById('office-3d-reset').onclick=()=>{angle=.32;elevation=.49;radius=22;render();};
+  cityButton.hidden=false;
+  cityButton.onclick=enterCity;
+  document.getElementById('office-3d-reset').onclick=()=>{
+    cityMode=false;
+    reference.hidden=true;
+    target.set(0,2.05,-2.25);
+    group.children.forEach(object=>{object.visible=true;});
+    angle=.32;elevation=.49;radius=22;
+    notice.textContent='ชี้ที่ตัวละครให้ลุก · ลากเพื่อหมุน · คลิกห้องเพื่อเลือกผู้ช่วย';
+    render();
+  };
   new ResizeObserver(render).observe(view);
   let displayedRoles = [];
   function updateLabels() {
