@@ -70,6 +70,7 @@ body{margin:0;background:#080d1b;color:#edf3ff}
 #office-3d-stage .office-skyline{height:100%;position:absolute;inset:0;opacity:.68;border:0;pointer-events:none}
 #office-3d-stage canvas{position:relative}
 .office-avatar-caption{box-shadow:0 0 12px #5ca4f02f}
+.office-skyline:has(+ #office-3d.office-rendered){display:none}
 </style>
 <header><h2>AI Agency</h2><small>โหมดจำลอง · สถานะและข้อความเป็นตัวอย่าง</small></header>
 <div class="layout">
@@ -190,12 +191,15 @@ try {
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.outputColorSpace = T.SRGBColorSpace;
   view.append(renderer.domElement);
+  view.querySelector('.office-skyline')?.remove();
   const scene = new T.Scene();
+  scene.background = new T.Color(0x071126);
+  scene.fog = new T.FogExp2(0x101d36,.023);
   scene.add(new T.HemisphereLight(0xffffff, 0x8a8dab, 2.4));
   const lamp = new T.DirectionalLight(0xffffff, 2);
   lamp.position.set(3, 9, 7);
   scene.add(lamp);
-  const camera = new T.PerspectiveCamera(38, 1, .1, 80);
+  const camera = new T.PerspectiveCamera(38, 1, .1, 110);
   const colors = [0xa1d52c,0xf84599,0x21ceb3,0x8950ed,0x23b8dc,0x3672ee];
   const hair = [0xffbe56,0xab1458,0xef581e,0x4c22bc,0xe8e9ff,0x20294b];
   const group = new T.Group();
@@ -217,7 +221,7 @@ try {
   const floor = new T.Mesh(new T.BoxGeometry(width,.09,depth),new T.MeshStandardMaterial({color:0x625349,roughness:.83}));
   floor.position.set(0,floorY-.045,centerZ);
   group.add(floor);
-  const site = new T.Mesh(new T.PlaneGeometry(width+4,depth+3),new T.MeshStandardMaterial({color:0x202638,roughness:1}));
+  const site = new T.Mesh(new T.PlaneGeometry(92,88),new T.MeshStandardMaterial({color:0x202638,roughness:1}));
   site.rotation.x=-Math.PI/2;
   site.position.set(0,floorY-.095,centerZ);
   group.add(site);
@@ -242,7 +246,7 @@ try {
     group.add(room);
     const rug = part(room,'box',color,[3.05,.008,1.83],[0,floorY+.004,.08]);
     rug.material.color.lerp(new T.Color(0x463949),.57);
-    part(room,'box',0x42506e,[2.2,.13,.77],[.54,.71,.55]);
+    part(room,'box',0xd9dfe8,[2.2,.08,.78],[.54,.75,.55]);
     part(room,'box',0x293858,[.12,.59,.55],[-.43,.38,.55]);
     part(room,'box',0x293858,[.12,.59,.55],[1.51,.38,.55]);
     part(room,'box',0xcfd8ea,[.71,.43,.055],[-.47,1.075,1.035]);
@@ -259,7 +263,11 @@ try {
     ];
     const [propColor,propWidth,propHeight,propDepth] = deskProps[i];
     part(room,'box',propColor,[propWidth,propHeight,propDepth],[.22,.81,.6]);
-    part(room,'box',0x475773,[1.14,.10,.53],[-.47,.74,.88]);
+    part(room,'box',0xe4e9ef,[1.16,.07,.54],[-.47,.755,.88]);
+    const deskLight=part(room,'box',color,[1.14,.016,.025],[-.47,.715,.63]);
+    deskLight.material.emissive.setHex(color);
+    deskLight.material.emissiveIntensity=.5;
+    part(room,'box',0x1b2941,[.26,.012,.16],[-.16,.799,.88]);
     part(room,'box',0x17243b,[.60,.035,.22],[-.47,.81,.81]);
     for (let key=0;key<7;key++) part(room,'box',0x76a9dc,[.057,.012,.047],[-.72+key*.081,.833,.81]);
     part(room,'box',0x272e49,[.65,.12,.57],[-.47,.47,-.39]);
@@ -405,6 +413,80 @@ try {
     }
     shellBox([to-from,.055,.23],[mid,floorY+.55,rearZ],revealMaterial);
   }
+  // World-space buildings and street details give the exterior real parallax.
+  const city = new T.Group();
+  group.add(city);
+  const blockGeometry = new T.BoxGeometry(1,1,1);
+  function cityBox(size,position,color) {
+    const mesh=new T.Mesh(blockGeometry,new T.MeshStandardMaterial({color,roughness:.76}));
+    mesh.position.set(...position);
+    mesh.scale.set(...size);
+    city.add(mesh);
+    return mesh;
+  }
+  const panes=[];
+  function building(x,z,w,d,h,facade) {
+    cityBox([w,h,d],[x,h/2,z],facade);
+    for(let y=1;y<h-.35;y+=.72) {
+      for(let column=0;column<Math.max(2,Math.floor(w/.55));column++) {
+        const count=Math.max(2,Math.floor(w/.55));
+        if ((Math.round(y*10)+column+Math.round(x))%4===0) continue;
+        panes.push([x-w/2+(column+.5)*w/count,y,z+d/2+.014,(column+Math.round(y))%3===0?0xffca82:0x8cc9ff]);
+      }
+    }
+  }
+  cityBox([48,.035,4.4],[0,.012,-8.2],0x263148);
+  cityBox([48,.05,1.1],[0,.035,-5.58],0x586074);
+  for(let x=-21;x<=21;x+=3) cityBox([1.15,.013,.035],[x,.04,-8.2],0xb99d6d);
+  for(let i=0;i<12;i++) {
+    const x=(i-5.5)*2.7;
+    const h=2.5+(i%3)*.34;
+    building(x,-12.5,2.42,2.5,h,[0x715752,0x796658,0x465b69][i%3]);
+    cityBox([2.55,.15,2.68],[x,h+.06,-12.5],0x383c52);
+  }
+  for(let i=0;i<14;i++) {
+    const x=(i-6.5)*3.45;
+    if(i===9) continue;
+    building(x,-21-(i%3)*3.6,1.9+(i%4)*.45,2.3,4.3+(i*7%13)*.6,[0x2a3957,0x344769,0x354258][i%3]);
+  }
+  // Stepped silhouette inspired by the pixel cuts of MahaNakhon.
+  building(8.62,-24,2.5,2.6,8.4,0x3e5378);
+  building(8.25,-24,1.78,2.2,10.7,0x43658d);
+  building(8.70,-24,1.30,1.85,12.2,0x3b5a82);
+  const windows=new T.InstancedMesh(blockGeometry,new T.MeshBasicMaterial({color:0xffffff}),panes.length);
+  const transform=new T.Object3D();
+  panes.forEach(([x,y,z,color],i)=>{
+    transform.position.set(x,y,z);
+    transform.scale.set(.22,.29,.022);
+    transform.updateMatrix();
+    windows.setMatrixAt(i,transform.matrix);
+    windows.setColorAt(i,new T.Color(color));
+  });
+  city.add(windows);
+  const leafGeometry=new T.IcosahedronGeometry(.34,1);
+  const leafMaterial=new T.MeshStandardMaterial({color:0x356c56,roughness:.94});
+  function plant(x,z,indoor) {
+    const base=indoor?floorY:.04;
+    if(indoor) cityBox([.45,.32,.45],[x,base+.16,z],0xa2a2a8);
+    cityBox([.085,.62,.085],[x,base+.42,z],0x4f413b);
+    for(const [dx,dy,dz] of [[0,.81,0],[-.17,.67,.07],[.18,.70,-.09]]) {
+      const leaf=new T.Mesh(leafGeometry,leafMaterial);
+      leaf.position.set(x+dx,base+dy,z+dz);
+      city.add(leaf);
+    }
+  }
+  for(const x of [-5.55,5.55]) {
+    plant(x,4.63,true);
+    plant(x,-4.48,true);
+  }
+  for(let x=-16;x<=16;x+=3.2) plant(x,-10.7,false);
+  // A shared high table sits in the front zone, clear of the center aisle.
+  cityBox([2.1,.075,.86],[3.65,.80,4.72],0xd5be9d);
+  for(const x of [2.83,4.47]) cityBox([.09,.68,.58],[x,.43,4.72],0x252c42);
+  for(const x of [3.03,4.28]) {
+    cityBox([.47,.09,.38],[x,.47,5.35],0x8793ad);
+    cityBox([.095,.36,.10],[x,.27,5.35],0x303951);
+  }
   const limbAxis = new T.Vector3(0,1,0);
   const limbDirection = new T.Vector3();
   function connect(mesh,a,b) {
@@ -434,8 +516,8 @@ try {
     }
   }
   avatars.forEach(person=>pose(person,0));
-  let angle=.55, elevation=.82, radius=19.4, start=null;
-  const target=new T.Vector3(0,.44,0);
+  let angle=.32, elevation=.49, radius=22, start=null;
+  const target=new T.Vector3(0,2.05,-2.25);
   function render() {
     const width = view.clientWidth;
     const height = view.clientHeight;
@@ -446,7 +528,7 @@ try {
       sizes.height=height;
     }
     camera.aspect=width/height;
-    camera.fov=width/height<1 ? 49 : 38;
+    camera.fov=width/height<1 ? 58 : 47;
     camera.updateProjectionMatrix();
     camera.position.set(target.x+Math.sin(angle)*Math.cos(elevation)*radius,target.y+Math.sin(elevation)*radius,target.z+Math.cos(angle)*Math.cos(elevation)*radius);
     camera.lookAt(target);
@@ -569,7 +651,7 @@ try {
   canvas.addEventListener('wheel',e=>{e.preventDefault();zoom(Math.sign(e.deltaY)*.75);},{passive:false});
   document.getElementById('office-3d-in').onclick=()=>zoom(-1);
   document.getElementById('office-3d-out').onclick=()=>zoom(1);
-  document.getElementById('office-3d-reset').onclick=()=>{angle=.55;elevation=.82;radius=19.4;render();};
+  document.getElementById('office-3d-reset').onclick=()=>{angle=.32;elevation=.49;radius=22;render();};
   new ResizeObserver(render).observe(view);
   let displayedRoles = [];
   function updateLabels() {
@@ -618,6 +700,7 @@ try {
     render();
   });
   updateLabels();
+  view.closest('#office-3d').classList.add('office-rendered');
   notice.textContent='ชี้ที่ตัวละครให้ลุก · ลากเพื่อหมุน · คลิกห้องเพื่อเลือกผู้ช่วย';
   render();
 } catch {
