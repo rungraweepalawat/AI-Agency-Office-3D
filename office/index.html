@@ -71,23 +71,28 @@ body{margin:0;background:#080d1b;color:#edf3ff}
 @keyframes office-indicator{50%{opacity:.45}}
 @media(prefers-reduced-motion:reduce){#agency-sim .card-activity::before{animation:none}}
 
-.office-skyline{height:clamp(140px,20vw,280px);background:#101d3c url("./bangkok-day.webp") center 46% / cover no-repeat;border-bottom:1px solid #364979}
-#office-3d-stage .office-skyline{background-position:center;background-size:cover}
-#office-3d-stage{background:linear-gradient(#111d36,#080e1f)}
-#office-3d-stage .office-skyline{height:100%;position:absolute;inset:0;opacity:.68;border:0;pointer-events:none}
+#office-3d-stage{
+  background:#769bc4 url("./bangkok-day.webp") center 46% / cover no-repeat;
+}
+#office-3d-stage[hidden],.office-3d-controls button[hidden]{display:none}
 #office-3d-stage canvas{position:relative}
 .office-avatar-caption{box-shadow:0 0 12px #5ca4f02f}
-.office-skyline:has(+ #office-3d.office-rendered){display:none}
 #office-3d-stage .city-reference{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#0b2441;z-index:2;pointer-events:none}
-#office-3d-stage .city-reference[hidden],#office-city-view[hidden]{display:none}
-#office-3d-stage .office-skyline,.office-skyline:has(+ #office-3d){background-size:contain;background-position:center}
-.office-skyline:has(+ #office-3d){height:auto;aspect-ratio:2}
+#office-3d-stage .city-reference[hidden]{display:none}
+.office-column.office-fallback{
+  border:1px solid #34486e;border-radius:15px;min-width:0;
+  padding:clamp(90px,16vw,220px) 12px 0;
+  background:no-repeat top center / 100% auto
+    linear-gradient(180deg,transparent 10%,#0d152833 34%,#0d1528 100%),
+    #0d1528 url("./bangkok-day.webp") top center / 100% auto no-repeat;
+}
+.office-column.office-fallback #office-3d{margin-bottom:10px}
 </style>
 <header><h1>AI Agency</h1><span id="connection" class="muted" role="status">กำลังเชื่อมต่อ</span></header>
 <main>
-<section aria-label="ออฟฟิศ">
+<section class="office-column" aria-label="ออฟฟิศ">
 <section id="office-3d" aria-label="ออฟฟิศสามมิติ">
-<div id="office-3d-stage" data-selected="1"><div class="office-skyline" aria-hidden="true"></div></div>
+<div id="office-3d-stage" data-selected="1"></div>
 <div class="office-3d-controls">
 <small id="office-3d-notice" role="status">กำลังโหลดฉาก 3D</small>
 <button id="office-3d-in" type="button" aria-label="ซูมเข้า">+</button>
@@ -246,9 +251,8 @@ try {
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.outputColorSpace = T.SRGBColorSpace;
   view.append(renderer.domElement);
-  view.querySelector('.office-skyline')?.remove();
   const scene = new T.Scene();
-  scene.background = new T.Color(0x8bc6ef);
+  const citySky = new T.Color(0x8bc6ef);
   scene.fog = new T.FogExp2(0xcbe4f4,.018);
   scene.add(new T.HemisphereLight(0xe6f6ff, 0x9c9eaf, 1.85));
   const lamp = new T.DirectionalLight(0xfff2df, 2.55);
@@ -484,12 +488,14 @@ try {
   // World-space buildings and street details give the exterior real parallax.
   const city = new T.Group();
   group.add(city);
+  const interior = new T.Group();
+  group.add(interior);
   const blockGeometry = new T.BoxGeometry(1,1,1);
-  function cityBox(size,position,color) {
+  function cityBox(size,position,color,parent=city) {
     const mesh=new T.Mesh(blockGeometry,new T.MeshStandardMaterial({color,roughness:.76}));
     mesh.position.set(...position);
     mesh.scale.set(...size);
-    city.add(mesh);
+    parent.add(mesh);
     return mesh;
   }
   const panes=[];
@@ -562,12 +568,13 @@ try {
   const leafMaterial=new T.MeshStandardMaterial({color:0x356c56,roughness:.94});
   function plant(x,z,indoor) {
     const base=indoor?floorY:.04;
-    if(indoor) cityBox([.45,.32,.45],[x,base+.16,z],0xa2a2a8);
-    cityBox([.085,.62,.085],[x,base+.42,z],0x4f413b);
+    const parent=indoor?interior:city;
+    if(indoor) cityBox([.45,.32,.45],[x,base+.16,z],0xa2a2a8,parent);
+    cityBox([.085,.62,.085],[x,base+.42,z],0x4f413b,parent);
     for(const [dx,dy,dz] of [[0,.81,0],[-.17,.67,.07],[.18,.70,-.09]]) {
       const leaf=new T.Mesh(leafGeometry,leafMaterial);
       leaf.position.set(x+dx,base+dy,z+dz);
-      city.add(leaf);
+      parent.add(leaf);
     }
   }
   for(const x of [-5.55,5.55]) {
@@ -576,28 +583,28 @@ try {
   }
   for(let x=-16;x<=16;x+=3.2) plant(x,-10.7,false);
   // A shared high table sits in the front zone, clear of the center aisle.
-  cityBox([2.1,.075,.86],[3.65,.80,4.72],0xaeccd7);
-  for(const x of [2.83,4.47]) cityBox([.09,.68,.58],[x,.43,4.72],0x252c42);
+  cityBox([2.1,.075,.86],[3.65,.80,4.72],0xaeccd7,interior);
+  for(const x of [2.83,4.47]) cityBox([.09,.68,.58],[x,.43,4.72],0x252c42,interior);
   for(const x of [3.03,4.28]) {
-    cityBox([.47,.09,.38],[x,.47,5.35],0x8793ad);
-    cityBox([.095,.36,.10],[x,.27,5.35],0x303951);
+    cityBox([.47,.09,.38],[x,.47,5.35],0x8793ad,interior);
+    cityBox([.095,.36,.10],[x,.27,5.35],0x303951,interior);
   }
   // Cyan workbench displays with dark steel and red-metal accents.
-  cityBox([2.05,.20,.69],[-3.65,.19,4.82],0x622c32);
-  cityBox([1.85,.17,.55],[-3.65,.365,4.82],0x273d51);
-  cityBox([1.48,.025,.46],[-3.65,.47,4.82],0x63bad7);
+  cityBox([2.05,.20,.69],[-3.65,.19,4.82],0x622c32,interior);
+  cityBox([1.85,.17,.55],[-3.65,.365,4.82],0x273d51,interior);
+  cityBox([1.48,.025,.46],[-3.65,.47,4.82],0x63bad7,interior);
   const cyanGlow=new T.MeshBasicMaterial({color:0x76e8ff});
   for (const r of [.24,.38,.53]) {
     const ring=new T.Mesh(new T.TorusGeometry(r,.012,8,36),cyanGlow);
     ring.rotation.x=-Math.PI/2;
     ring.position.set(-3.65,.78+(r-.24)*.52,4.82);
-    city.add(ring);
+    interior.add(ring);
   }
   const model=new T.Mesh(new T.OctahedronGeometry(.22),new T.MeshStandardMaterial({
     color:0x53bada,emissive:0x107baa,emissiveIntensity:.55,wireframe:true
   }));
   model.position.set(-3.65,.925,4.82);
-  city.add(model);
+  interior.add(model);
   const limbAxis = new T.Vector3(0,1,0);
   const limbDirection = new T.Vector3();
   function connect(mesh,a,b) {
@@ -639,6 +646,7 @@ try {
   let cityMode=false;
   function enterCity(){
     cityMode=true;
+    scene.background=citySky;
     angle=.32; elevation=.22; radius=19;
     target.set(1.3,3.15,-14.6);
     group.children.forEach(object=>{object.visible=object===city || object===site;});
@@ -787,15 +795,17 @@ try {
   document.getElementById('office-3d-out').onclick=()=>zoom(1);
   cityButton.hidden=false;
   cityButton.onclick=enterCity;
-  document.getElementById('office-3d-reset').onclick=()=>{
+  function enterOffice(){
     cityMode=false;
+    scene.background=null;
     reference.hidden=true;
     target.set(0,2.05,-2.25);
-    group.children.forEach(object=>{object.visible=true;});
+    group.children.forEach(object=>{object.visible=object!==city && object!==site;});
     angle=.32;elevation=.49;radius=22;
     notice.textContent='ชี้ที่ตัวละครให้ลุก · ลากเพื่อหมุน · คลิกห้องเพื่อเลือกผู้ช่วย';
     render();
-  };
+  }
+  document.getElementById('office-3d-reset').onclick=enterOffice;
   new ResizeObserver(render).observe(view);
   let displayedRoles = [];
   function updateLabels() {
@@ -844,17 +854,15 @@ try {
     });
     render();
   });
-  view.closest('#office-3d').classList.add('office-rendered');
-  enterCity();
+  enterOffice();
   updateLabels();
 } catch {
-  const fallback = document.createElement('img');
-  fallback.className='city-reference';
-  fallback.src='./bangkok-day.webp';
-  fallback.alt='ภาพวิวกรุงเทพฯ ตอนกลางวัน';
-  view.replaceChildren(fallback);
-  notice.textContent='ฉาก 3D เปิดไม่ได้บนอุปกรณ์นี้ · เลือกผู้ช่วยจากการ์ดด้านล่างได้';
-  for(const id of ['office-3d-in','office-3d-out','office-3d-reset']) document.getElementById(id).disabled=true;
+  view.hidden = true;
+  view.closest('.office-column').classList.add('office-fallback');
+  notice.textContent = 'มุมมองการ์ด · เบราว์เซอร์นี้เปิด WebGL ไม่ได้';
+  for (const id of ['office-3d-in','office-3d-out','office-city-view','office-3d-reset']) {
+    document.getElementById(id).hidden = true;
+  }
 }
 </script>
 </html>
