@@ -78,9 +78,9 @@ body{margin:0;background:#f5f0e7;color:#342d26}
 @keyframes office-indicator{50%{opacity:.45}}
 @media(prefers-reduced-motion:reduce){#agency-sim .card-activity::before{animation:none}}
 
-main{grid-template-columns:minmax(0,3fr) minmax(245px,1fr)}
+main{grid-template-columns:minmax(0,4fr) minmax(250px,1fr);align-items:start}
 @media(max-width:800px){main{grid-template-columns:minmax(0,1fr)}}
-#office-3d-stage{height:clamp(380px,48vw,710px);background:#8bc6ef}
+#office-3d-stage{height:clamp(385px,53vw,775px);background:#8bc6ef}
 #office-3d-stage[hidden],.office-3d-controls button[hidden]{display:none}
 #office-3d-stage canvas{position:relative}
 .office-column{min-width:0}
@@ -90,6 +90,48 @@ main{grid-template-columns:minmax(0,3fr) minmax(245px,1fr)}
 .office-avatar-caption strong{font-size:11px}
 .office-avatar-caption small{font-size:10px;margin-top:2px}
 @media(max-width:620px){.office-avatar-caption{width:90px}.office-avatar-caption strong{font-size:10px}}
+
+#office-3d{margin-bottom:0}
+.team-switcher{grid-column:1/-1;min-width:0}
+.team-dock{
+  display:grid;grid-template-columns:repeat(6,minmax(108px,1fr));
+  gap:9px;max-width:970px;overflow-x:auto;padding:3px 3px 8px;
+  scrollbar-width:thin;overscroll-behavior-inline:contain;
+}
+.team-dock .room{min-width:0;padding:0;gap:0;border-radius:10px}
+.team-dock .room strong{font-size:.79rem;line-height:1.24;min-height:2.5em;display:block;overflow-wrap:anywhere}
+.team-dock .room small,.team-dock .status{font-size:.72rem;line-height:1.25}
+.team-dock .room strong{padding:5px 7px 0}
+.team-dock .room small{padding:2px 7px 6px}
+.team-dock .avatar{height:42px;font-size:1.45rem}
+.team-dock .room-info{gap:3px;padding:5px 7px}
+.team-dock .room-info strong{padding:0}
+.office-sidebar .command-panel{
+  position:relative;min-width:0;overflow:hidden;
+  background:
+    radial-gradient(ellipse at 98% 0%,rgba(161,211,248,.42),transparent 62%),
+    linear-gradient(150deg,rgba(255,255,255,.85),rgba(229,242,251,.53) 65%,rgba(255,250,238,.76));
+  border:1px solid #b6ccdb;
+  box-shadow:inset 0 1px 0 #fff,0 10px 26px #33587918;
+  backdrop-filter:blur(18px) saturate(132%);
+}
+.office-sidebar .command-form{gap:8px}
+.office-sidebar .command-form input:not([type=checkbox]){
+  min-width:0;background:#ffffffab;border:1px solid #a9c1d5;color:#253c52;
+  box-shadow:inset 0 1px 0 #fff;outline-offset:2px;
+}
+.office-sidebar .command-form input:not([type=checkbox]):focus-visible{
+  outline:2px solid #447b9b;
+}
+.office-sidebar .command-form button[type=submit]{
+  background:linear-gradient(150deg,#315b75,#244356);
+  color:#fff;border:1px solid #315b75;box-shadow:inset 0 1px 0 #ffffff33;
+  white-space:nowrap;
+}
+@media(max-width:800px){
+  #office-3d-stage{height:clamp(340px,68vw,570px)}
+  .team-dock{grid-template-columns:repeat(6,minmax(108px,1fr))}
+}
 </style>
 <header><h1>AI Agency</h1><span id="connection" class="muted" role="status">กำลังเชื่อมต่อ</span></header>
 <main>
@@ -104,15 +146,15 @@ main{grid-template-columns:minmax(0,3fr) minmax(245px,1fr)}
 <small id="office-3d-journey" role="status"></small>
 </div>
 </section>
-<h2>ทีมหลัก</h2><div class="grid" id="main-team"></div>
-<h2>ทีมเบื้องหลัง</h2><div class="grid support" id="support-team"></div>
-<p class="muted">ตัวละครเป็นภาพแทนชั่วคราว · คลิกห้องเพื่อเลือกผู้ช่วย</p>
 </section>
-<aside>
+<aside class="office-sidebar">
 <section class="panel"><h2>รายการงาน</h2><div class="region" id="tasks"></div></section>
-<section class="panel"><h2>แชท</h2><div class="region" id="chat" role="log"></div>
-<form id="form"><label id="recipient" for="message"></label><div class="compose"><input id="message" placeholder="พิมพ์โจทย์งาน" maxlength="4000" required><button class="send" type="submit">ส่ง</button></div><label id="handoff-option" hidden><input type="checkbox" id="handoff"> ส่งบรีฟให้ Graphic Designer อัตโนมัติ</label><p id="error" role="alert" class="muted"></p></form></section>
+<section class="panel command-panel"><h2>แชท</h2><div class="region" id="chat" role="log"></div>
+<form id="form" class="command-form"><label id="recipient" for="message"></label><div class="compose"><input id="message" placeholder="พิมพ์โจทย์งาน" maxlength="4000" required><button class="send" type="submit">ส่ง</button></div><label id="handoff-option" hidden><input type="checkbox" id="handoff"> ส่งบรีฟให้ Graphic Designer อัตโนมัติ</label><p id="error" role="alert" class="muted"></p></form></section>
 </aside>
+<section class="team-switcher" aria-label="ทีมผู้ช่วย">
+<div class="team-dock" id="team-dock"></div>
+</section>
 </main>
 <script>
 const roles = [
@@ -132,7 +174,7 @@ let jobs = [];
 let signature = '';
 let firstSnapshot = true;
 const seenHandoffs = new Set();
-for (const [index,[id,name,character,tone]] of roles.entries()) {
+for (const [id,name,character,tone] of roles) {
   const button = document.createElement('button');
   button.type = 'button';
   button.className = 'room';
@@ -142,7 +184,7 @@ for (const [index,[id,name,character,tone]] of roles.entries()) {
   button.querySelector('strong').textContent = name;
   button.onclick = () => {selected=id; render();};
   rooms.set(id,button);
-  el(index<4?'main-team':'support-team').append(button);
+  el('team-dock').append(button);
 }
 function text(parent,tag,value,className='') {
   const node = document.createElement(tag);

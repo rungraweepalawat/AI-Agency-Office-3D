@@ -46,7 +46,6 @@
 .office-avatar-caption small{font-size:clamp(10px,1vw,12px);margin-top:2px;color:#494c70}
 #agency-sim .rooms{gap:16px}
 #agency-sim .room{position:relative}
-#agency-sim .room .card-activity{position:absolute;inset:7px auto auto 7px;max-width:calc(100% - 14px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:#172032ec;color:#fff;border-radius:6px;padding:4px 7px;font-size:12px}
 
 html{background:#f5f0e7;color-scheme:light}
 body{margin:0;background:#f5f0e7;color:#342d26}
@@ -56,20 +55,16 @@ body{margin:0;background:#f5f0e7;color:#342d26}
 #agency-sim .room[data-state="กำลังทำงาน"] small{color:#62488a}
 #agency-sim .room[data-state="รอทำงาน"] small{color:#75501e}
 #agency-sim .room[data-state="เสร็จแล้ว"] small{color:#2d664e}
-#agency-sim .room .card-activity{background:#fffcf5f5;color:#432e20}
 #office-3d{background:#fbf6ea;border-color:#d5c1a2;color:#342d26}
 .office-3d-controls{background:#fdf9ef}
 .office-3d-controls small{color:#635649}
 .office-3d-controls button{background:#f1e3c9;color:#412e18;border-color:#c9ac7f}
 .office-avatar-caption{background:#fffaf0f5;color:#33271c;border-color:#c8a978}
 .office-avatar-caption small{color:#675442}
-#agency-sim .card-activity::before{content:"";display:inline-block;width:6px;height:6px;margin-right:6px;border-radius:50%;background:#a47a43;animation:office-indicator 2s ease-in-out infinite}
-@keyframes office-indicator{50%{opacity:.45}}
-@media(prefers-reduced-motion:reduce){#agency-sim .card-activity::before{animation:none}}
 
-#agency-sim .layout{grid-template-columns:minmax(0,3fr) minmax(245px,1fr)}
+#agency-sim .layout{grid-template-columns:minmax(0,4fr) minmax(250px,1fr);align-items:start}
 @media(max-width:800px){#agency-sim .layout{grid-template-columns:minmax(0,1fr)}}
-#office-3d-stage{height:clamp(380px,48vw,710px);background:#8bc6ef}
+#office-3d-stage{height:clamp(385px,53vw,775px);background:#8bc6ef}
 #office-3d-stage[hidden],.office-3d-controls button[hidden]{display:none}
 #office-3d-stage canvas{position:relative}
 .office-column{min-width:0}
@@ -79,6 +74,53 @@ body{margin:0;background:#f5f0e7;color:#342d26}
 .office-avatar-caption strong{font-size:11px}
 .office-avatar-caption small{font-size:10px;margin-top:2px}
 @media(max-width:620px){.office-avatar-caption{width:90px}.office-avatar-caption strong{font-size:10px}}
+
+#office-3d{margin-bottom:0}
+.team-switcher{grid-column:1/-1;min-width:0}
+.team-dock{
+  display:grid;grid-template-columns:repeat(6,minmax(108px,1fr));
+  gap:9px;max-width:970px;overflow-x:auto;padding:3px 3px 8px;
+  scrollbar-width:thin;overscroll-behavior-inline:contain;
+}
+.team-dock .room{min-width:0;padding:0;gap:0;border-radius:10px}
+.team-dock .room strong{font-size:.79rem;line-height:1.24;min-height:2.5em;display:block;overflow-wrap:anywhere}
+.team-dock .room small,.team-dock .status{font-size:.72rem;line-height:1.25}
+.team-dock .room strong{padding:5px 7px 0}
+.team-dock .room small{padding:2px 7px 6px}
+.team-dock .avatar{height:42px;font-size:1.45rem}
+.team-dock .room-info{gap:3px;padding:5px 7px}
+.team-dock .room-info strong{padding:0}
+.office-sidebar .command-panel{
+  position:relative;min-width:0;overflow:hidden;
+  background:
+    radial-gradient(ellipse at 98% 0%,rgba(161,211,248,.42),transparent 62%),
+    linear-gradient(150deg,rgba(255,255,255,.85),rgba(229,242,251,.53) 65%,rgba(255,250,238,.76));
+  border:1px solid #b6ccdb;
+  box-shadow:inset 0 1px 0 #fff,0 10px 26px #33587918;
+  backdrop-filter:blur(18px) saturate(132%);
+}
+.office-sidebar .command-form{gap:8px}
+.office-sidebar .command-form input:not([type=checkbox]){
+  min-width:0;background:#ffffffab;border:1px solid #a9c1d5;color:#253c52;
+  box-shadow:inset 0 1px 0 #fff;outline-offset:2px;
+}
+.office-sidebar .command-form input:not([type=checkbox]):focus-visible{
+  outline:2px solid #447b9b;
+}
+.office-sidebar .command-form button[type=submit]{
+  background:linear-gradient(150deg,#315b75,#244356);
+  color:#fff;border:1px solid #315b75;box-shadow:inset 0 1px 0 #ffffff33;
+  white-space:nowrap;
+}
+@media(max-width:800px){
+  #office-3d-stage{height:clamp(340px,68vw,570px)}
+  .team-dock{grid-template-columns:repeat(6,minmax(108px,1fr))}
+}
+#agency-sim,#agency-sim *{box-sizing:border-box}
+#agency-sim .team-dock .room{padding:0;min-height:0;gap:0}
+#agency-sim .team-dock .portrait{min-height:0;max-height:none;aspect-ratio:2.25}
+#agency-sim .team-dock .room strong{padding:5px 7px 0}
+#agency-sim .team-dock .room small{padding:2px 7px 6px}
 </style>
 <header><h2>AI Agency</h2><small>โหมดจำลอง · สถานะและข้อความเป็นตัวอย่าง</small></header>
 <div class="layout">
@@ -93,11 +135,14 @@ body{margin:0;background:#f5f0e7;color:#342d26}
 <small id="office-3d-journey" role="status"></small>
 </div>
 </section>
-<h3>ทีมหลัก</h3><div class="rooms" id="sim-main"></div><h3>ทีมเบื้องหลัง</h3><div class="rooms back" id="sim-back"></div></div>
-<aside>
+</div>
+<aside class="office-sidebar">
 <article><h3>Tasks · รายการงาน</h3><div id="sim-tasks" aria-live="polite"></div><button id="sim-next" type="button">เดินงานตัวอย่าง</button></article>
-<article><h3 id="sim-chat-title">แชทจำลอง</h3><div id="sim-chat" role="log"></div><form><input aria-label="ข้อความทดลอง" placeholder="พิมพ์ข้อความทดลอง" required maxlength="240"><button type="submit">ลองส่ง</button></form></article>
+<article class="command-panel"><h3 id="sim-chat-title">แชทจำลอง</h3><div id="sim-chat" role="log"></div><form class="command-form"><input aria-label="ข้อความทดลอง" placeholder="พิมพ์ข้อความทดลอง" required maxlength="240"><button type="submit">ลองส่ง</button></form></article>
 </aside>
+<section class="team-switcher" aria-label="ทีมผู้ช่วย">
+<div class="team-dock" id="team-dock"></div>
+</section>
 </div>
 </section>
 <script>
@@ -127,12 +172,9 @@ body{margin:0;background:#f5f0e7;color:#342d26}
     button.style.setProperty('--portrait-position', column + ' ' + row);
     const title = document.createElement('strong');
     title.textContent = name;
-    const activity = document.createElement('span');
-    activity.className='card-activity';
-    activity.setAttribute('aria-hidden','true');
-    button.append(portrait, title, document.createElement('small'), activity);
+    button.append(portrait, title, document.createElement('small'));
     button.onclick = () => { selected = index; render(); };
-    get(index < 4 ? 'sim-main' : 'sim-back').append(button);
+    get('team-dock').append(button);
     return button;
   });
   function add(parent, value) {
@@ -153,7 +195,6 @@ body{margin:0;background:#f5f0e7;color:#342d26}
       buttons[index].setAttribute('aria-pressed', String(index === selected));
       buttons[index].querySelector('small').textContent = role[4];
       buttons[index].dataset.state = role[4];
-      buttons[index].querySelector('.card-activity').textContent = role[4]==='กำลังทำงาน'?role[5]:role[4];
       if (role[5]) add(tasks, role[5] + ' · ' + role[4]);
     });
     get('sim-chat-title').textContent = 'Chat · ' + team[selected][0];
